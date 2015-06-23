@@ -1,0 +1,162 @@
+<?php
+
+/**
+ * @file
+ * Harvesting module for dkan.
+ */
+
+define(
+  'DKAN_HARVEST_CACHE_DIR',
+  'public://dkan-harvest-cache'
+);
+
+/**
+ * Returns configuration for harvest sources.
+ */
+function dkan_harvest_sources_definition() {
+  $modules = module_implements('harvest_sources');
+  $subscribed_values = array();
+  // Get a list of licenses to display.
+  foreach ($modules as $module) {
+    $function = $module . '_harvest_sources';
+    $values = $function();
+    foreach ($values as $key => $value) {
+      // Make sure other module didn't provide the same source.
+      if (!isset($subscribed_values[$key])) {
+        $subscribed_values[$key] = $value;
+      }
+    }
+  }
+  return $subscribed_values;
+}
+
+/**
+ * Callback for dkan-harvest-run
+ */
+function dkan_harvest_run() {
+  dkan_harvest_cache_data();
+  dkan_harvest_migrate_data();
+}
+
+/**
+ * Callback for dkan-migrate-cached-data.
+ */
+function dkan_harvest_migrate_data() {
+  migrate_static_registration();
+  $migration = Migration::getInstance('dkan_harvest_data_json');
+  $migration->processImport();
+}
+
+/**
+ * Callback for dkan-cache-harvested-data.
+ */
+function dkan_harvest_cache_data() {
+  $harvest_last_updated = microtime();
+  $sources = dkan_harvest_sources_definition();
+  $context = stream_context_create(
+    array(
+      'http' => array(
+        'timeout' => 36000,
+      ),
+      'https' => array(
+        'timeout' => 36000,
+      ),
+    )
+  );
+  $counters = array();
+  foreach ($sources as $key => $source) {
+    $dir = dkan_harvest_sources_prepare_cache_dir($key);
+    $remote = file_get_contents($source['remote'], 0, $context);
+    $counters[$key] = 0;
+    if ($remote) {
+      switch ($source['type']) {
+        case 'data.json':
+          $json = drupal_json_decode($remote);
+          if ($json) {
+            $datasets = $json['dataset'];
+            $datasets = dkan_harvest_filter_datasets($datasets, $source['filters'], $source['excludes']);
+            foreach ($datasets as $dataset) {
+              $identifier = dkan_harvest_prepare_item_id($dataset['identifier']);
+              $dataset['harvest_object_id'] = $identifier;
+              $dataset['harvest_source_id'] = $key;
+              $dataset['harvest_last_updated'] = $harvest_last_updated;
+              $dataset_file = implode('/', array($dir, $identifier));
+              file_put_contents($dataset_file, drupal_json_encode($dataset));
+              drush_log($dataset_file . ' created for dataset with id: ' . $identifier, 'success');
+              $counters[$key] = $counters[$key] + 1;
+            }
+          }
+          break;
+      }
+    }
+  }
+  $n = 0;
+  foreach ($counters as $key => $counter) {
+    $message = $counter . ' datasets harvested for ' . $key;
+    drush_log($message, 'success');
+    $n += $counter;
+  }
+  $message = $n . ' datasets harvested in total';
+  drush_log($message, 'success');
+}
+
+/**
+ * Filters an array of data.json datasets based on a set of filters.
+ */
+function dkan_harvest_filter_datasets($datasets, $filters, $excludes = array()) {
+  $r = array();
+  foreach ($datasets as $dataset) {
+    $passes = TRUE;
+    foreach ($filters as $filter => $value) {
+      if (!isset($dataset[$filter])) {
+        $dataset[$filter] = array();  
+      }
+      if (count(array_intersect($value, $dataset[$filter])) < 1) {
+        $passes = FALSE;
+        break;
+      }
+    }
+    foreach ($excludes as $exclude => $value) {
+      if (!isset($dataset[$exclude])) {
+        $dataset[$exclude] = array();
+      }
+      if (count(array_intersect($value, $dataset[$exclude])) > 0) {
+        $passes = FALSE;
+        break;
+      }
+      
+    }
+    if ($passes) {
+      $r[] = $dataset;
+    }
+  }
+  return $r;
+}
+
+function dkan_harvest_sources_prepare_cache_dir($dir) {
+  // Create base dir.
+  if (!is_dir(DKAN_HARVEST_CACHE_DIR)) {
+    drupal_mkdir(DKAN_HARVEST_CACHE_DIR);
+  }
+  // Create dir for source.
+  $dir = implode('/', array(DKAN_HARVEST_CACHE_DIR, $dir));
+  if (!is_dir($dir)) {
+    drupal_mkdir($dir);
+  }
+  // Delete all files in dir.
+  $files = glob($dir . '/*');
+  foreach($files as $file){
+    if (is_file($file)) {
+      unlink($file);
+    }
+  }
+  return $dir;
+}
+
+function dkan_harvest_prepare_item_id($identifier) {
+  if (filter_var($identifier, FILTER_VALIDATE_URL)) {
+    $identifier = parse_url($identifier, PHP_URL_PATH);
+    $identifier = end(explode('/', $identifier));
+  }
+  return $identifier;
+}
