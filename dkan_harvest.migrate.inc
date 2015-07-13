@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Migration File for hhs_harvest
+ * Migration File for DKAN Harvest.
  */
 
 
@@ -47,7 +47,7 @@ class DataJSONList extends MigrateList {
             if (!in_array(pathinfo($filename)['filename'], array('.', '..'))) {
               $files[] = $filename;
             }
-          }    
+          }
         }
       }
       $this->files = $files;
@@ -96,7 +96,7 @@ class DataJSONItem extends MigrateItem {
       $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
       return new stdClass();
     }
-    
+
     // Validate that source is set properly for item.
     $key = explode('/', $id);
     end($key);
@@ -105,14 +105,16 @@ class DataJSONItem extends MigrateItem {
     if (!isset($sources[$key])) {
       $message = t('!objecturl does not belong to a valid harvest source:', array('!objecturl' => $id));
       $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-      return new stdClass(); 
+      return new stdClass();
     }
     $source = $sources[$key];
     // Set key to ease item identification while processing the row.
     $json['source'] = $key;
     // Set defaults.
-    foreach ($source['defaults'] as $default => $value) {
-      $json[$default] = $value;
+    if (isset($source['defaults'])) {
+      foreach ($source['defaults'] as $default => $value) {
+        $json[$default] = $value;
+      }
     }
     // Set overrides.
     foreach ($source['overrides'] as $override => $value) {
@@ -211,7 +213,7 @@ class DataJSONHarvest extends MigrateDKAN {
           foreach ((array) $row->{$key} as $k => $v) {
             if ($k != '@type') {
               $k = $key . '-' . $k;
-              $row->field_additional_info_key[] = substr($k, 0, 254); 
+              $row->field_additional_info_key[] = substr($k, 0, 254);
               $row->field_additional_info_value[] = substr($v, 0, 254);
             }
           }
