@@ -6,8 +6,7 @@
  */
 
 function dkan_harvest_install() {
-  Migration::deregisterMigration('hhs_ckan_migrate');
-  module_disable(array('hhs_ckan_migrate'));
+  dkan_harvest_uuid_length();
 }
 
 /**
@@ -15,4 +14,20 @@ function dkan_harvest_install() {
  */
 function dkan_harvest_disable() {
   Migration::deregisterMigration('dkan_harvest_data_json');
+}
+
+/**
+ * Changes length of uuid field to support URLs.
+ */
+function dkan_harvest_update_7001(&$sandbox) {
+  dkan_harvest_uuid_length();
+}
+
+/**
+ * Changes length of uuid field to 144 chars.
+ */
+function dkan_harvest_uuid_length() {
+  $field = uuid_schema_field_definition();
+  $field['length'] = 144;
+  db_change_field('node', 'uuid', 'uuid', $field);
 }
