@@ -64,6 +64,29 @@ $ drush dkan-migrate-cached-data
 $ drush dkan-mcd
 ```
 
+## Installation example:
+```
+// Note: Currently dependenps on NuCivic/dkan-drop-7 as Drupal core base.
+
+cd /var/www
+git clone https://github.com/NuCivic/dkan-drops-7.git dkan_harvest
+cd dkan_harvest
+
+drush si dkan --sites-subdir=default --db-url=mysql://root:@127.0.0.1:3306/dkan_harvest --account-name=admin --account-pass=admin  --site-name="DKAN" install_configure_form.update_status_module='array(FALSE,FALSE)' --yes
+drush cc all --yes
+
+cd sites/all/modules
+git clone https://github.com/NuCivic/dkan_harvest.git
+
+drush dl -y migrate-7.x-2.x
+drush en -y migrate
+git clone https://github.com/NuCivic/dkan_migrate_base.git
+drush en -y dkan_harvest
+drush en -y dkan_harvest_test
+cd dkan_harvest
+composer install
+```
+
 ## Todo's
 
 + Move as much as possible from `DataJSONHarvest` class to **dkan_migrate_base** 's own `MigrateDataJsonDatasetBase`
