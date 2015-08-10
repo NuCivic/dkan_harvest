@@ -18,6 +18,9 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       }
     }
 
+    /**
+     * TODO: move to base class.
+     */
     public function getNodeByTitle($title) {
       $node = new stdClass();
       $query = new EntityFieldQuery();
@@ -33,12 +36,18 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       return $node;
     }
 
+    /**
+     * @covers dkan_harvest_sources_definition().
+     */
     public function testDKANHarvestSourcesDefinition()
     {
       $sources = dkan_harvest_sources_definition();
       $this->assertEquals($sources['demo.getdkan.com']['filters']['keyword'][0], 'election');
     }
 
+    /**
+     * @covers dkan_harvest_sources_prepare_cache_dir().
+     */
     public function testDKANHarvestSourcesPrepareCacheDir()
     {
       $dirName = 'test_dir';
@@ -49,6 +58,9 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       $this->assertEquals(file_exists(DKAN_HARVEST_CACHE_DIR . '/' . $dirName), NULL);
     }
 
+    /**
+     * @covers dkan_harvest_prepare_item_id().
+     */
     public function testDKANHarvestPrepareItemId()
     {
       $url = 'http://example.com/what';
@@ -64,6 +76,9 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       $this->assertEquals($dir, '');
     }
 
+    /**
+     * @covers dkan_harvest_cache_data_process().
+     */
     public function testDKANHarvestDataProcess()
     {
       $this->assertEquals(file_exists("public://dkan-harvest-cache/demo.getdkan.com/90a2b708-7fea-4b92-8aee-43c4cfdd5f48"), NULL);
@@ -73,6 +88,9 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       $this->assertFileExists("public://dkan-harvest-cache/demo.getdkan.com/c2150dce-db96-4007-ba3f-fb4f3774902d");
     }
 
+    /**
+     * @covers dkan_harvest_filter_datasets().
+     */
     public function testDKANHarvestDatasetFilter()
     {
       $sources = $this->DKANTestSource();
