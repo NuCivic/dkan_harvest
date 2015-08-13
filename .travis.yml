@@ -9,7 +9,6 @@ mysql:
   encoding: utf8
 
 install:
-  - composer install
   - mysql -e 'create database dkan_travis;'
   - sudo apt-get update > /dev/null
   - sudo apt-get --quiet=2 install php5-cgi php5-curl php5-gd php5-mysql > /dev/null
@@ -31,11 +30,12 @@ before_script:
   - drush dl -y migrate-7.x-2.x
   - drush en -y migrate
   - cd sites/all/modules
-  - git clone https://github.com/NuCivic/dkan_migrate_base.git
+  - git clone https://github.com/NuCivic/dkan_migrate_base.git --branch adding_odfe
+  - drush en -y dkan_migrate_base
   - drush en -y dkan_harvest
   - drush en -y dkan_harvest_test
-  - cd dkan_harvest
+  - cd dkan_harvest/test
   - composer install
 
 script:
-  - bin/phpunit --bootstrap=test/boot.php test/DKANHarvestBaseTest.php
+  - bin/phpunit --bootstrap=boot.php DKANHarvestBaseTest.php
