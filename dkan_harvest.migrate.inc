@@ -57,9 +57,23 @@ class DataJSONList extends MigrateList {
    * Implements MigrateList::getIdList().
    */
   public function getIdList() {
-    return $this->files;
+    $ids = array();
+    $cache = cache_get('dkan_harvest_ids');
+    if ($cache->data && count($cache->data) == count($this->files)) {
+      return array_keys($cache->data);
+    }
+    else {
+      foreach ($this->files as $file) {
+        if (file_exists($file)) {
+          $data = json_decode(file_get_contents($file));
+          $ids[$data->identifier] = $file;
+        }
+      }
+      cache_set('dkan_harvest_ids', $ids, 'cache');
+      return array_keys($ids);
+    }
   }
-
+  
   /**
    * Implements MigrateList::__toString().
    */
@@ -71,7 +85,14 @@ class DataJSONList extends MigrateList {
    * Implements MigrateList::computeCount().
    */
   public function computeCount() {
-    return count($this->getIdList());
+    $count = count($this->getIdList());
+    foreach ($this->files as $file) {
+      if (file_exists($file)) {
+        $data = json_decode(file_get_contents($file));
+        $count = $count + count($data->distribution);
+      }
+    }
+    return $count;
   }
 }
 
@@ -81,46 +102,56 @@ class DataJSONItem extends MigrateItem {
    */
   public function getItem($id) {
 
-    $json = file_get_contents($id);
-    $migration = Migration::currentMigration();
-    // Test if file exists.
-    if ($json === FALSE) {
-      $message = t('Loading of !objecturl failed:', array('!objecturl' => $id));
-      $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-      return new stdClass();
-    }
-    // Test if file is valid json.
-    $json = drupal_json_decode($json);
-    if (is_null($json)) {
-      $message = t('!objecturl does not contain a valid json string:', array('!objecturl' => $id));
-      $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-      return new stdClass();
-    }
+    if ($cache = cache_get('dkan_harvest_ids')) {
+      $files = $cache->data;
+      $file = $files[$id];
 
-    // Validate that source is set properly for item.
-    $key = explode('/', $id);
-    end($key);
-    $key = prev($key);
-    $sources = dkan_harvest_sources_definition();
-    if (!isset($sources[$key])) {
-      $message = t('!objecturl does not belong to a valid harvest source:', array('!objecturl' => $id));
+      $json = file_get_contents($file);
+      $migration = Migration::currentMigration();
+      // Test if file exists.
+      if ($json === FALSE) {
+        $message = t('Loading of !objecturl failed:', array('!objecturl' => $id));
+        $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
+        return new stdClass();
+      }
+      // Test if file is valid json.
+      $json = drupal_json_decode($json);
+      if (is_null($json)) {
+        $message = t('!objecturl does not contain a valid json string:', array('!objecturl' => $id));
+        $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
+        return new stdClass();
+      }
+
+      // Validate that source is set properly for item.
+      $key = explode('/', $file);
+      end($key);
+      $key = prev($key);
+      $sources = dkan_harvest_sources_definition();
+      if (!isset($sources[$key])) {
+        $message = t('!objecturl does not belong to a valid harvest source:', array('!objecturl' => $id));
+        $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
+        return new stdClass();
+      }
+      $source = $sources[$key];
+      // Set key to ease item identification while processing the row.
+      $json['source'] = $key;
+      // Set defaults.
+      if (isset($source['defaults'])) {
+        foreach ($source['defaults'] as $default => $value) {
+          $json[$default] = $value;
+        }
+      }
+      // Set overrides.
+      foreach ($source['overrides'] as $override => $value) {
+        $json[$override] = $value;
+      }
+      return (object) $json;
+    }
+    else {
+      $message = t('Loading of files for !objecturl failed:', array('!objecturl' => $id));
       $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
       return new stdClass();
     }
-    $source = $sources[$key];
-    // Set key to ease item identification while processing the row.
-    $json['source'] = $key;
-    // Set defaults.
-    if (isset($source['defaults'])) {
-      foreach ($source['defaults'] as $default => $value) {
-        $json[$default] = $value;
-      }
-    }
-    // Set overrides.
-    foreach ($source['overrides'] as $override => $value) {
-      $json[$override] = $value;
-    }
-    return (object) $json;
   }
 }
 
@@ -147,8 +178,6 @@ class DataJSONHarvest extends MigrateDataJsonDatasetBase {
         ),
         MigrateDestinationNode::getKeySchema()
     );
-    // Unsetting until way of breaking up highwater achieved.
-    //$this->highwaterField = array('name' => 'modified');
     $this->destination = new MigrateDestinationNode(
       'dataset',
       array('text_format' => 'html')
@@ -160,7 +189,9 @@ class DataJSONHarvest extends MigrateDataJsonDatasetBase {
    * Implements prepareRow.
    */
   public function prepareRow($row) {
-    parent::prepareRow($row);
+    if (parent::prepareRow($row) === FALSE) {
+      return FALSE;
+    }
   }
 
  /**
