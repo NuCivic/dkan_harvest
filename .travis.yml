@@ -30,7 +30,7 @@ before_script:
   - drush dl -y migrate-7.x-2.x
   - drush en -y migrate
   - cd sites/all/modules
-  - git clone https://github.com/NuCivic/dkan_migrate_base.git --branch adding_odfe
+  - git clone https://github.com/NuCivic/dkan_migrate_base.git --branch 7.x-1.x
   - drush en -y dkan_migrate_base
   - drush en -y dkan_harvest
   - drush en -y dkan_harvest_test
