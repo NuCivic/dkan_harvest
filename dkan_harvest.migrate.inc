@@ -59,7 +59,7 @@ class DataJSONList extends MigrateList {
   public function getIdList() {
     $ids = array();
     $cache = cache_get('dkan_harvest_ids');
-    if ($cache->data && count($cache->data) == count($this->files)) {
+    if ($cache && isset($cache->data) && count($cache->data) == count($this->files)) {
       return array_keys($cache->data);
     }
     else {
