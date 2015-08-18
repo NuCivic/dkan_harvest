@@ -83,7 +83,7 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
     {
       $this->assertEquals(file_exists("public://dkan-harvest-cache/demo.getdkan.com/90a2b708-7fea-4b92-8aee-43c4cfdd5f48"), NULL);
       $sources = $this->DKANTestSource();
-      dkan_harvest_cache_data_process($sources, microtime());
+      dkan_harvest_cache_data_process($sources, microtime(TRUE));
       $this->assertFileExists("public://dkan-harvest-cache/demo.getdkan.com/90a2b708-7fea-4b92-8aee-43c4cfdd5f48");
       $this->assertFileExists("public://dkan-harvest-cache/demo.getdkan.com/c2150dce-db96-4007-ba3f-fb4f3774902d");
     }

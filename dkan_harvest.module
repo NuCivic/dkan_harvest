@@ -51,7 +51,7 @@ function dkan_harvest_migrate_data() {
  * Callback for dkan-cache-harvested-data.
  */
 function dkan_harvest_cache_data() {
-  $harvest_last_updated = microtime();
+  $harvest_last_updated = microtime(TRUE);
   $sources = dkan_harvest_sources_definition();
   dkan_harvest_cache_data_process($sources, $harvest_last_updated);
 }
