@@ -100,8 +100,8 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       $datasets = $json['dataset'];
 
       $this->assertEquals(count($datasets), 4);
-      var_dump($datasets[0]);
-      var_dump($datasets[1]);
+      var_dump($datasets[0]['title']);
+      var_dump($datasets[1]['title']);
       $this->assertEquals($datasets[0]['title'], "Wisconsin Polling Places TEST");
       $this->assertEquals($datasets[1]['title'], "US National Foreclosure Statistics January 2012 TEST");
       $this->assertEquals($datasets[2]['title'], "Gold Prices in London 1950-2008 (Monthly) TEST");
