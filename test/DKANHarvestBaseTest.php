@@ -89,6 +89,19 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers dkan_harvest_cache_data().
+     */
+    public function testDKANHarvestCacheData()
+    {
+      $options = array(
+        'sources' => array('www.google.com'),
+      );
+      $expected = "0 datasets harvested in total";
+      $actual = dkan_harvest_cache_data($options);
+      $this->assertEquals($expected, $actual);
+    }
+
+    /**
      * @covers dkan_harvest_filter_datasets().
      */
     public function testDKANHarvestDatasetFilter()
