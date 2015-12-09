@@ -50,10 +50,13 @@ function dkan_harvest_migrate_data() {
 /**
  * Callback for dkan-cache-harvested-data.
  */
-function dkan_harvest_cache_data() {
+function dkan_harvest_cache_data($options = array()) {
   $harvest_last_updated = microtime();
   $sources = dkan_harvest_sources_definition();
-  dkan_harvest_cache_data_process($sources, $harvest_last_updated);
+  if (!empty($options)) {
+    $sources = array_intersect_key($sources, array_flip($options['sources']));
+  }
+  return dkan_harvest_cache_data_process($sources, $harvest_last_updated);
 }
 
 /**
@@ -104,7 +107,7 @@ function dkan_harvest_cache_data_process($sources, $harvest_last_updated) {
     $n += $counter;
   }
   $message = $n . ' datasets harvested in total';
-  dkan_harvest_log($message, 'success');
+  return dkan_harvest_log($message, 'success');
 }
 
 /**
@@ -117,6 +120,7 @@ function dkan_harvest_log($message, $type) {
   else {
     watchdog('dkan_harvest', $message);
   }
+  return $message;
 }
 
 /**
