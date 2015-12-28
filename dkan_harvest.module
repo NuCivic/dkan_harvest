@@ -16,18 +16,46 @@ define(
 function dkan_harvest_sources_definition() {
   $modules = module_implements('harvest_sources');
   $subscribed_values = array();
+  $source_types = array_keys(dkan_harvest_source_types_definition());
   // Get a list of licenses to display.
   foreach ($modules as $module) {
     $function = $module . '_harvest_sources';
     $values = $function();
     foreach ($values as $key => $value) {
       // Make sure other module didn't provide the same source.
-      if (!isset($subscribed_values[$key])) {
+      if (!isset($subscribed_values[$key]) && in_array($value['type'], $source_types)) {
         $subscribed_values[$key] = $value;
       }
     }
   }
   return $subscribed_values;
+}
+
+/**
+ * Returns configuration for harvest sources types.
+ */
+function dkan_harvest_source_types_definition() {
+  $source_types = array();
+  foreach (module_implements('harvest_source_types') as $module) {
+    $function = $module . '_harvest_source_types';
+    $values = $function();
+    foreach ($values as $key => $value) {
+      if (!in_array($key, array_keys($source_types))) {
+        $source_types[$key] = $value;
+      }
+    }
+  }
+  return $source_types;
+}
+
+function dkan_harvest_harvest_source_types() {
+  return array(
+    'data.json' => array(
+      'callback' => 'dkan_harvest_data_json_cache',
+      'migration' => 'dkan_harvest_data_json',
+      'identifier' => 'identifier',
+    ),
+  );
 }
 
 /**
@@ -43,8 +71,13 @@ function dkan_harvest_run() {
  */
 function dkan_harvest_migrate_data() {
   migrate_static_registration();
-  $migration = Migration::getInstance('dkan_harvest_data_json');
-  $migration->processImport();
+  $source_types = dkan_harvest_source_types_definition();
+  foreach ($source_types as $source_type) {
+    if (isset($source_type['migration']) && $source_type['migration']) {
+      $migration = Migration::getInstance($source_type['migration']);
+      $migration->processImport();
+    }
+  }
 }
 
 /**
@@ -73,34 +106,33 @@ function dkan_harvest_cache_data_process($sources, $harvest_last_updated) {
       ),
     )
   );
+  $source_types = dkan_harvest_source_types_definition();
   $counters = array();
   foreach ($sources as $key => $source) {
+    $dir = dkan_harvest_sources_prepare_cache_dir($key);
     $remote = file_get_contents($source['remote'], 0, $context);
     $counters[$key] = 0;
     if ($remote) {
-      switch ($source['type']) {
-        case 'data.xml':
-          $xml = simplexml_load_string($remote);
-          $json  = json_encode($xml);
-          $array = json_decode($json, TRUE);
-
-          if ($array) {
-            dkan_harvest_cache_pod_1_1_json($array, $key, $source, $counters);
-          }
-          break;
-
-        case 'data.json':
-          $remote = utf8_encode($remote);
-          $json = drupal_json_decode($remote);
-          if (!$json) {
-            # Anticipate encoding errors.
-            $remote = utf8_encode($remote);
-            $json = drupal_json_decode($remote);
-          }
-          if ($json) {
-            dkan_harvest_cache_pod_1_1_json($json, $key, $source, $counters);
-          }
-          break;
+      $source_type_definition = $source_types[$source['type']];
+      $type_identifier = $source_type_definition['identifier'];
+      $type_callback = $source_type_definition['callback'];
+      $datasets = $type_callback($remote);
+      if ($datasets) {
+        $datasets = dkan_harvest_filter_datasets($datasets, $source['filters'], $source['excludes']);
+        foreach ($datasets as $dataset) {
+          $identifier = dkan_harvest_prepare_item_id($dataset[$type_identifier]);
+          $dataset['harvest_object_id'] = $identifier;
+          $dataset['harvest_source_id'] = $key;
+          $dataset['harvest_last_updated'] = $harvest_last_updated;
+          $dataset_file = implode('/', array($dir, $identifier));
+          file_put_contents($dataset_file, drupal_json_encode($dataset));
+          dkan_harvest_log($dataset_file . ' created for dataset with id: ' . $identifier, 'success');
+          $counters[$key] = $counters[$key] + 1;
+        }
+      }
+      else {
+        dkan_harvest_log('Can\'t retrieve datasets for source: ' . $key, 'error');
+        return FALSE;
       }
     }
   }
@@ -114,32 +146,13 @@ function dkan_harvest_cache_data_process($sources, $harvest_last_updated) {
   return dkan_harvest_log($message, 'success');
 }
 
-/**
- * Cache the pod_1_1_json datasets.
- */
-function dkan_harvest_cache_pod_1_1_json($json, $key, $source, &$counters) {
-  $dir = dkan_harvest_sources_prepare_cache_dir($key);
-  $datasets = $json['dataset'];
-  $datasets = dkan_harvest_filter_datasets($datasets, $source['filters'], $source['excludes']);
-  foreach ($datasets as $dataset) {
-    $identifier = dkan_harvest_prepare_item_id($dataset['identifier']);
-    $dataset['harvest_object_id'] = $identifier;
-    $dataset['harvest_source_id'] = $key;
-    $dataset['harvest_last_updated'] = $harvest_last_updated;
-    $dataset_file = implode('/', array($dir, $identifier));
-    $data = drupal_json_encode($dataset);
-    $test  = file_put_contents($dataset_file, $data);
-
-    if ($test) {
-      dkan_harvest_log($dataset_file . ' created for dataset with id: ' . $identifier, 'success');
-    }
-    else {
-      dkan_harvest_log('failed to create ' . $dataset_file . 'for dataset with id: ' . $identifier, 'failed');
-    }
-    $counters[$key] = $counters[$key] + 1;
+function dkan_harvest_data_json_cache($remote) {
+  $json = drupal_json_decode($remote);
+  if ($json && isset($json['dataset'])) {
+    return $json['dataset'];
   }
+  return FALSE;
 }
-
 /**
  * Messages to drush_log if available.
  */

@@ -21,3 +21,13 @@ function dkan_harvest_harvest_sources() {
     ),
   );
 }
+
+function dkan_harvest_harvest_sources_types() {
+  return array(
+    'data.json' => array(
+      'callback' => 'php_callback_function',
+      'migration' => 'migration_identifier',
+      'identifier' => 'key_to_use_as_identifier',
+    ),
+  );
+}
