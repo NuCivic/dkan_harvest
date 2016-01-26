@@ -82,14 +82,14 @@ function dkan_harvest_cache_data_process($sources, $harvest_last_updated) {
           $array = json_decode($json, TRUE);
 
           if ($array) {
-            dkan_harvest_cache_pod_1_1_json($array, $key, $counters);
+            dkan_harvest_cache_pod_1_1_json($array, $key, $source, $counters);
           }
           break;
 
         case 'data.json':
           $json = drupal_json_decode($remote);
           if ($json) {
-            dkan_harvest_cache_pod_1_1_json($json, $key, $counters);
+            dkan_harvest_cache_pod_1_1_json($json, $key, $source, $counters);
           }
           break;
       }
@@ -108,7 +108,7 @@ function dkan_harvest_cache_data_process($sources, $harvest_last_updated) {
 /**
  * Cache the pod_1_1_json datasets.
  */
-function dkan_harvest_cache_pod_1_1_json($json, $key, &$counters) {
+function dkan_harvest_cache_pod_1_1_json($json, $key, $source, &$counters) {
   $dir = dkan_harvest_sources_prepare_cache_dir($key);
   $datasets = $json['dataset'];
   $datasets = dkan_harvest_filter_datasets($datasets, $source['filters'], $source['excludes']);
