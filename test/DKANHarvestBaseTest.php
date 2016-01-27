@@ -117,11 +117,9 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
 
     public function testDKANHarvestMigrate()
     {
-      $node = $this->getNodeByTitle("Wisconsin Polling Places TEST");
-      $node->title = isset($node->title) ? $node->title : NULL;
-      $this->assertEquals($node->title, NULL);
+      $title = "Wisconsin Polling Places TEST";
       dkan_harvest_run();
-      $node = $this->getNodeByTitle("Wisconsin Polling Places TEST");
-      $this->assertEquals($node->title, "Wisconsin Polling Places TEST");
+      $node = $this->getNodeByTitle($title);
+      $this->assertEquals($node->title, $title);
     }
 }
