@@ -21,3 +21,9 @@ ahoy dkan module-link $DKAN_MODULE
 ahoy dkan module-make $DKAN_MODULE
 ahoy dkan reinstall
 ahoy drush en migrate dkan_migrate_base $DKAN_MODULE -y
+
+echo ""
+echo "-------> Run harvester:"
+echo ""
+ahoy drush cc --all
+ahoy drush dkan-hr
