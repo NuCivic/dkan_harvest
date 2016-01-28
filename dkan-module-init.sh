@@ -15,7 +15,8 @@ if [[ "$PATH" != *"$COMPOSER_PATH"* ]]; then
   export PATH="$PATH:~/$COMPOSER_PATH"
 fi
 
-wget -q -O - https://raw.githubusercontent.com/NuCivic/dkan/dev-dkan-ahoy-smarter/dkan-init.sh | bash /dev/stdin $DKAN_MODULE $@ --skip-reinstall
+wget -q -O - https://raw.githubusercontent.com/NuCivic/dkan/dev-dkan-ahoy-smarter/dkan-init.sh | bash /dev/stdin $DKAN_MODULE $@ --skip-reinstall --deps
+
 ahoy dkan module-link $DKAN_MODULE
 ahoy dkan module-make $DKAN_MODULE
 ahoy dkan reinstall
