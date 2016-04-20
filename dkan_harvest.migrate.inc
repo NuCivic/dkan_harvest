@@ -2,233 +2,991 @@
 
 /**
  * @file
- * Migration File for DKAN Harvest.
+ * Base Harvest Migration classes.
  */
-
 
 /**
- * Implements hook_migrate_api().
+ * Base Class for harvest migration.
  */
-function dkan_harvest_migrate_api() {
-  $api = array(
-    'api' => 2,
-    'groups' => array(
-      'dkan_harvest' => array(
-        'title' => t('dkan_harvest'),
-      ),
-    ),
-    'migrations' => array(
-      'dkan_harvest_data_json' => array(
-        'class_name' => 'DataJSONHarvest',
-        'group_name' => 'dkan_harvest',
-        'title' => t('data.json harvest'),
-      ),
-    ),
-  );
-  return $api;
-}
+class HarvestMigration extends MigrateDKAN {
 
-class DataJSONList extends MigrateList {
-  protected $files;
   /**
-   * Builds the list of files paths inside DKAN_HARVEST_CACHE_DIR.
+   * {@inheritdoc}
    */
-  public function __construct() {
-    parent::__construct();
-    // Build list of items based off sources definitions.
-    if (!isset($this->files)) {
-      $files = array();
-      $sources = dkan_harvest_sources_definition();
-      foreach ($sources as $key => $source) {
-        if ($source['type'] == 'data.json') {
-          $dir = DKAN_HARVEST_CACHE_DIR . '/' . $key;
-          $dir = drupal_realpath($dir);
-          foreach (glob($dir . '/*') as $filename) {
-            if (!in_array(pathinfo($filename)['filename'], array('.', '..'))) {
-              $files[] = $filename;
-            }
-          }
-        }
-      }
-      $this->files = $files;
+  static public function getInstance($machine_name, $class_name = NULL, array $arguments = array()) {
+    // Reset the cache entry for this specific migration. to make sure the
+    // arguments are always fresh.
+    $migrations = &drupal_static(__FUNCTION__, array());
+    if (isset($migrations[$machine_name])) {
+      unset($migrations[$machine_name]);
     }
-  }
-  /**
-   * Implements MigrateList::getIdList().
-   */
-  public function getIdList() {
-    $ids = array();
-    $cache = cache_get('dkan_harvest_ids');
-    if ($cache && isset($cache->data) && count($cache->data) == count($this->files)) {
-      return array_keys($cache->data);
-    }
-    else {
-      foreach ($this->files as $file) {
-        if (file_exists($file)) {
-          $data = json_decode(file_get_contents($file));
-          $ids[$data->identifier] = $file;
-        }
-      }
-      cache_set('dkan_harvest_ids', $ids, 'cache');
-      return array_keys($ids);
-    }
+    return parent::getInstance($machine_name, $class_name, $arguments);
   }
 
-  /**
-   * Implements MigrateList::__toString().
-   */
-  public function __toString() {
-    return '';
-  }
+  // Additional custom status for the map table.
+  // TODO Not sure this is the best place for those map flags.
+  const STATUS_IGNORED_NO_SOURCE = 20;
+
+  // Store the harvest source we got from the Migration registration.
+  protected $dkanHarvestSource;
+
+  protected $sourceListOptions;
+
+  // MigrateMap init arguments.
+  protected $dkanHarvestMigrateSQLMapSourceKey;
+  protected $dkanHarvestMigrateSQLMapDestinationKey;
+  protected $dkanHarvestMigrateSQLMapConnectionKey;
+  protected $dkanHarvestMigrateSQLMapSourceOptions;
+
+  // Store the dataset ids processed by this harvest migrate. Those will come
+  // in handy later to unpublish missing sources.
+  protected $idListImported = array();
+
+  // Extra Harvest argument.
+  protected $dkanHarvestOptSkipHash = FALSE;
 
   /**
-   * Implements MigrateList::computeCount().
+   * General initialization of a HarvestMigration object.
    */
-  public function computeCount() {
-    $count = count($this->getIdList());
-    foreach ($this->files as $file) {
-      if (file_exists($file)) {
-        $data = json_decode(file_get_contents($file));
-        $count = $count + count($data->distribution);
-      }
+  public function __construct(Array $arguments) {
+    if (!isset($arguments['dkan_harvest_source'])) {
+      // Don't bother if we don't get the harvest source object. This will help
+      // avoid null issues when looking at the migrations status .
+      return;
     }
-    return $count;
-  }
-}
 
-class DataJSONItem extends MigrateItem {
-  /**
-   * Implements MigrateItem::getItem().
-   */
-  public function getItem($id) {
-
-    $migration = Migration::currentMigration();
-
-    if ($cache = cache_get('dkan_harvest_ids')) {
-      $files = $cache->data;
-      $file = $files[$id];
-
-      $json = file_get_contents($file);
-      // Test if file exists.
-      if ($json === FALSE) {
-        $message = t('Loading of !objecturl failed:', array('!objecturl' => $id));
-        $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-        return new stdClass();
-      }
-      // Test if file is valid json.
-      $json = drupal_json_decode($json);
-      if (is_null($json)) {
-        $message = t('!objecturl does not contain a valid json string:', array('!objecturl' => $id));
-        $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-        return new stdClass();
-      }
-
-      // Validate that source is set properly for item.
-      $key = explode('/', $file);
-      end($key);
-      $key = prev($key);
-      $sources = dkan_harvest_sources_definition();
-      if (!isset($sources[$key])) {
-        $message = t('!objecturl does not belong to a valid harvest source:', array('!objecturl' => $id));
-        $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-        return new stdClass();
-      }
-      $source = $sources[$key];
-      // Set key to ease item identification while processing the row.
-      $json['source'] = $key;
-      // Set defaults.
-      if (isset($source['defaults'])) {
-        foreach ($source['defaults'] as $default => $value) {
-          $json[$default] = $value;
-        }
-      }
-      // Set overrides.
-      foreach ($source['overrides'] as $override => $value) {
-        $json[$override] = $value;
-      }
-      return (object) $json;
-    }
-    else {
-      $message = t('Loading of files for !objecturl failed:', array('!objecturl' => $id));
-      $migration->getMap()->saveMessage(array($id), $message, MigrationBase::MESSAGE_ERROR);
-      return new stdClass();
-    }
-  }
-}
-
-class DataJSONHarvest extends MigrateDataJsonDatasetBase {
-  /**
-   * Registers endpoints.
-   */
-  public function __construct($arguments) {
     parent::__construct($arguments);
-    $fields = $this->getDataJsonDatasetFields();
-    $this->source = new MigrateSourceList(
-      new DataJSONList(),
-      new DataJSONItem(), $fields
+
+    $this->dkanHarvestSource = $arguments['dkan_harvest_source'];
+
+    // SourceList options.
+    $this->sourceListOptions = array(
+      'track_changes' => TRUE,
     );
+
+    // Keep MigrateMap construct arguments around to make overrides available.
+    $this->dkanHarvestMigrateSQLMapSourceKey = array(
+      'dkan_harvest_object_id' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'id',
+      ),
+    );
+    $this->dkanHarvestMigrateSQLMapDestinationKey = MigrateDestinationNode::getKeySchema();
+    $this->dkanHarvestMigrateSQLMapConnectionKey = 'default';
+    $this->dkanHarvestMigrateSQLMapSourceOptions = array(
+      'track_last_imported' => TRUE,
+    );
+
     $this->map = new MigrateSQLMap(
-        $this->machineName,
-        array(
-          'uuid' => array(
-            'type' => 'varchar',
-            'length' => 255,
-            'not null' => TRUE,
-            'description' => 'id',
-          ),
-        ),
-        MigrateDestinationNode::getKeySchema()
+      $this->machineName,
+      $this->dkanHarvestMigrateSQLMapSourceKey,
+      $this->dkanHarvestMigrateSQLMapDestinationKey,
+      $this->dkanHarvestMigrateSQLMapConnectionKey,
+      $this->dkanHarvestMigrateSQLMapSourceOptions
     );
+
     $this->destination = new MigrateDestinationNode(
       'dataset',
       array('text_format' => 'html')
     );
-    $this->addDataJsonMapping();
+
+    // Add Field mappings.
+    $this->setFieldMappings();
   }
 
   /**
-   * Implements prepareRow.
+   * {@inheritdoc}
+   *
+   * Add support for harvest migration specific checks and options.
    */
-  public function prepareRow($row) {
-    if (parent::prepareRow($row) === FALSE) {
+  public function processImport(array $options = array()) {
+    if ($this->getStatus() == MigrationBase::STATUS_IDLE) {
+      // Extra Harvest Migration Arguments.
+      // Skip hash checking.
+      if (isset($options['dkan_harvest_skip_hash']) && $options['dkan_harvest_skip_hash']) {
+        // TODO add support for overridding the hash mecanisme.
+        $this->dkanHarvestOptSkipHash = TRUE;
+        $this->map->getConnection()->update($this->map->getMapTable())
+          ->fields(array('hash' => NULL))
+          ->execute();
+      }
+      parent::processImport($options);
+    }
+    else {
+      $message = 'Harvest Migration is not idle!';
+      self::displayMessage($message);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Implements MigrateBase::prepareRow().
+   * Add common DkanHarvest prepareRow steps.
+   */
+  public function prepareRow(&$row) {
+    parent::prepareRow($row);
+    $row->migrate_map_dkan_harvest_object_id = $dkanHarvestSource->machine_name;
+    $this->prepareRowAdditionalInfo($row);
+    $this->idListImported[] = $row->dkan_harvest_object_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Implements MigrateBase::prepare().
+   * Add common DkanHarvest prepare steps.
+   */
+  public function prepare(&$dataset_prepare, stdClass &$row) {
+    // Copied from the pod import class. Good candidate for clean up if
+    // dkan_harvest provides a unifiyed migration class.
+    // Remove empty additional fields.
+    if (isset($dataset_prepare->field_additional_info[LANGUAGE_NONE][0])
+      && $dataset_prepare->field_additional_info[LANGUAGE_NONE][0]['first'] == NULL) {
+      unset($dataset_prepare->field_additional_info);
+    }
+
+    // XXX copied from pod migration.
+    if (isset($row->modified) && $row->modified != '') {
+      $dataset_prepare->migration_changed_date = $row->modified;
+    }
+
+    $this->prepareResources($dataset_prepare, $row);
+
+    // This modules lives in NuCivic/dkan_dataset_metadata_source but seems to
+    // me that only USDA is using it right now.
+    if (module_exists('dkan_dataset_metadata_source')) {
+      $this->prepareMetadataSource($dataset_prepare, $row);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function complete(&$dataset, stdClass &$row) {
+    // Added empty callback. This is intended to have the subclass
+    // implementation call parent::complete() without running into php error.
+  }
+
+  /**
+   * If we are adding a new dataset, create and add the nids to the
+   * field_resources entity reference field.
+   * If we are updating an existing dataset. Remove the existing resources and
+   * replace them.
+   *
+   * @param $dataset_prepare dataset entity to prepare.
+   * @param stdClass $row Migrate row.
+   */
+  private function prepareResources(&$dataset_prepare, stdClass &$row) {
+    // Delete exsting resources if updating an existing dataset.
+    if (isset($row->migrate_map_destid1)) {
+      $dataset_old_emw = entity_metadata_wrapper('node', $row->migrate_map_destid1);
+      $field_resources_ids = array();
+      foreach ($dataset_old_emw->field_resources as $delta => $resource_emw) {
+        $field_resources_ids[] = $resource_emw->getIdentifier();
+      }
+      entity_delete_multiple('node', $field_resources_ids);
+    }
+
+    if (is_array($row->resources) && !empty($row->resources)) {
+      // Delete existing resources in case the dataset is updated.
+      $field_resources_value = array();
+      foreach ($row->resources as $resource_row) {
+        $resource_node = $this->createResourceNode($resource_row);
+        // TODO check
+        $field_resources_value[] = $resource_node->nid;
+      }
+
+      if (!empty($field_resources_value)) {
+        foreach ($field_resources_value as $key => $resource_nid) {
+          $dataset_prepare->field_resources[LANGUAGE_NONE][$key] = array(
+            'target_id' => $resource_nid,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Helper function to prepare an Object usable for
+   * HarvestMigration::prepareMetadataSource().
+   *
+   * @return Object usable for HarvestMigration::prepareMetadataSource(), or
+   * FALSE.
+   */
+  public static function prepareMetadataSourceHelper($file_uri, $title=NULL,
+    $metadata_schema=NULL, $metadata_view=NULL, $uid=1) {
+
+    $metadata_source = new stdClass();
+
+    $metadata_source->title = isset($title) ? $title : 'Metadata for ' . $row->dkan_harvest_object_id;
+
+    // TODO move this to the dkan_dataset_metadata_source module as a variable.
+    $metadata_source_dir = 'public://metadata_source/';
+    if (file_prepare_directory($metadata_source_dir, FILE_MODIFY_PERMISSIONS | FILE_CREATE_DIRECTORY)) {
+      // Check if the actual file exists.
+      if (!file_exists($file_uri)){
+        $message = t('@message_prefix. Metadata Source file @file_path not found.',
+          array(
+            '@message_prefix' => 'Adding Metada Source failed',
+            '@file_path' => $file_uri,
+          ));
+        self::displayMessage($message, 'error');
+        return FALSE;
+      }
+      $metadata_source->file_uri = $file_uri;
+    }
+
+    // Metadata schema
+    $metadata_source->metadata_schema = $metadata_schema;
+
+    // Title
+    $metadata_source->title = isset($title) ? $title : 'Metadata for ' . $row->dkan_harvest_object_id;
+
+    // Metadata View
+    $metadata_source->metadata_view = $metadata_view;
+
+    // UID
+    $metadata_source->uid = $uid;
+
+    return $metadata_source;
+  }
+
+  /**
+   * Create and attach the metadata-source node related to the dataset imported.
+   *
+   * @param $dataset_prepare: Dataset entity from the Migration::prepare() methode.
+   * @param $row: row object from the Migration::prepare() methode.
+   *
+   * @return the created metadata source id. Or FALSE if not created.
+   */
+  private function prepareMetadataSource(&$dataset_prepare, stdClass &$row) {
+    // Delete exsting metadata sources if updating an existing dataset.
+    if (isset($row->migrate_map_destid1)) {
+      try {
+        $dataset_old_emw = entity_metadata_wrapper('node', $row->migrate_map_destid1);
+        // Check if the old dataset have a metadata source attached.
+        $metadata_source_old_emw = $dataset_old_emw->field_metadata_sources->value();
+        if (isset($metadata_source_old_emw)) {
+          entity_delete('node', $metadata_source_old_emw->nid);
+        }
+      } catch (EntityMetadataWrapperException $emwException) {
+        // Cannot get to the old datasets although the migration states it
+        // exists. This should never happen but lets log this to help the next
+        // developer debug this problem.
+        $message = t(
+          'Cannot clean old metadata source. @exception_message',
+          array(
+            '@exception_message' => $emwException->getMessage(),
+          ));
+        self::displayMessage($message, 'error');
+        }
+    }
+
+    if (!isset($row->metadata_source) || !$row->metadata_source) {
+      // Metadata source not provided.
       return FALSE;
     }
-  }
 
- /**
-  *TODO: get and set highWater mark per source.
-  *
-  * Note: I think the only way to do this with a single migration is to get the
-  * idlist and run the migration separately like migrate.drush.inc.
-  */
-  public function getHighwater() {
-    $highwater = db_select('migrate_status', 'ms')
-              ->fields('ms', array('highwater'))
-              ->condition('machine_name', $this->machineName)
-              ->execute()
-              ->fetchField();
-    // Returns empty highwater.
-    return '';
-  }
+    // TODO export the config bit out.
+    // Create a metadata node that contains the source for imported USDA ISO
+    // dataset.
+    $metadata_source = entity_create('node'
+      , array(
+        'type' => 'metadata',
+        'uid' => $row->metadata_source,
+      ));
 
-  /**
-   * Prepare Identifier.
-   */
-  public function prepareIdentifier($identifier) {
-    if (filter_var($identifier, FILTER_VALIDATE_URL)) {
-      $host = parse_url($identifier, PHP_URL_HOST);
-      $identifier = parse_url($identifier, PHP_URL_PATH);
-      $identifier = explode('/', $identifier);
-      $identifier = end($identifier);
-      $identifier = $host . '--' . $identifier;
+    // Use the admin user as the node author.
+    $metadata_source_emw = entity_metadata_wrapper('node', $metadata_source);
+
+    $metadata_source_emw->title = $row->metadata_source->title;
+
+    if (isset($row->migrate_map_destid1)) {
+      $metadata_source_emw->field_dataset_metadata_ref->set($row->migrate_map_destid1);
     }
-    return $identifier;
+
+    if (isset($row->metadata_source->metadata_schema)) {
+      // TODO better null check.
+      $metadata_source_emw->field_metadata_schema->set(
+        $this->createTax($row->metadata_source->metadata_schema, 'extended_metadata_schema')->tid
+      );
+    }
+
+    // File
+    $metadata_source_content = file_get_contents($row->metadata_source->file_uri);
+    // TODO move this to the dkan_dataset_metadata_source module as a variable.
+    $metadata_source_dir = 'public://metadata_source/';
+    $metadata_source_file_destination_uri = $metadata_source_dir . basename($row->metadata_source->file_uri);
+    $file = file_save_data($metadata_source_content, $metadata_source_file_destination_uri,
+      FILE_EXISTS_REPLACE);
+
+    if (!$file) {
+      $message = t('Cannot create the file for the Metadata Source.');
+      self::displayMessage($message, 'error');
+      return FALSE;
+    }
+    $metadata_source_emw->field_metadata_file->file->set($file);
+
+    try {
+      $metadata_source_emw->save();
+    } catch (EntityMetadataWrapperException $emwException) {
+      // Saving the metadata source failed. skip.
+      $message = t(
+        '@message_prefix. @exception_message',
+        array(
+          '@message_prefix' => 'Adding Metada Source failed',
+          '@exception_message' => $emwException->getMessage(),
+        ));
+      self::displayMessage($message, 'error');
+    }
+
+    // Attache the metadata source to the dataset.
+    $dataset_prepare->field_metadata_sources[LANGUAGE_NONE][] = array(
+      'target_id' => $metadata_source_emw->getIdentifier(),
+    );
+
+    return $metadata_source_emw->getIdentifier();
   }
 
   /**
-   * Implements prepare.
+   * Implements Migrate::postImport()
    */
-  public function prepare($node, $row) {
-    parent::prepare($node, $row);
+  public function postImport() {
+    parent::postImport();
+    $this->postImportRestoredSource();
+    // We need the postImportRestoredSource() call to be before the
+    // postImportMissingSource() call.
+    $this->postImportMissingSource();
+  }
+
+  /**
+   * Process content that was marked as missing source in a previous harvest
+   * migrate operation but had the source restored.
+   */
+  private function postImportRestoredSource() {
+    // Remove the STATUS_IGNORED_NO_SOURCE flag and publish the datasets (and
+    // their related content) that had their source disappear in a previous
+    // harvest migrate.
+
+    // Get all the rows marked with self::STATUS_IGNORED_NO_SOURCE and
+    // part of the imported datasets imported.
+    if (is_array($this->idListImported) && !empty($this->idListImported)) {
+      migrate_instrument_start('postImportRestoredSource-SELECTNOSOURCEPROCESSED');
+      $query = $this->map->getConnection()->select($this->map->getMapTable(), 'map')
+        ->fields('map')
+        ->condition("needs_update", self::STATUS_IGNORED_NO_SOURCE)
+        // This will throw an exception if $this->idListImported is empty. We
+        // are doing that check before entring this code but if you are
+        // refactoring this code make sure to add the relevent checks.
+        ->condition('sourceid1', $this->idListImported, 'IN');
+      $result = $query->execute();
+      migrate_instrument_stop('postImportRestoredSource-SELECTNOSOURCEPROCESSED');
+
+      $rowRestoredSourceList = $result->fetchAllAssoc('destid1');
+      if (!empty($rowRestoredSourceList)) {
+        $message = t(
+          '@count item(s) datasets that were previously unpublished is restored by the source and will be republished again.',
+          array('@count' => count($rowRestoredSourceList))
+        );
+        self::displayMessage($message, 'warning');
+
+        foreach (array_keys($rowRestoredSourceList) as $dataset_nid) {
+          // TODO cach exceptions.
+          $dataset_emw = entity_metadata_wrapper('node', $dataset_nid);
+          $related_count = 0;
+
+          // Unpublish attached resources.
+          if (isset($dataset_emw->field_resources)) {
+            foreach ($dataset_emw->field_resources->getIterator() as $delta => $resource_emw) {
+              $resource_emw->status->set(1);
+              $resource_emw->save();
+              $related_count++;
+            }
+          }
+
+          // Publish attached metadata source.
+          if (module_exists('dkan_dataset_metadata_source')) {
+            if (isset($dataset_emw->field_metadata_sources) && !is_null($dataset_emw->field_metadata_sources->value())) {
+              $dataset_emw->field_metadata_sources->status->set(1);
+            }
+          }
+
+          // Publish the dataset.
+          $dataset_emw->status->set(1);
+          $dataset_emw->save();
+
+          // Update the map table.
+          migrate_instrument_start('postImportRestoredSource-UPDATEPROCESSED');
+          $results = $this->map->getConnection()->update($this->map->getMapTable())
+            ->fields(array('needs_update' => MigrateMap::STATUS_IMPORTED))
+            ->condition('destid1', $dataset_nid)
+            ->execute();
+          migrate_instrument_stop('postImportRestoredSource-UPDATEPROCESSED');
+
+          $message = t(
+            'Dataset "@dataset_title"[@nid] and @related_count related content (Resources, ..) published.',
+            array(
+              '@nid' => $dataset_emw->getIdentifier(),
+              '@dataset_title' => $dataset_emw->title->value(),
+              '@related_count' => $related_count,
+            )
+          );
+          self::displayMessage($message, 'warning');
+        }
+      }
+    }
+  }
+
+  /**
+   * Process content that was imported in previous harvest migrate operation
+   * but were not processed in this run because the source is not available.
+   */
+  private function postImportMissingSource() {
+    // Get all the rows NOT marked with self::STATUS_IGNORED_NO_SOURCE and NOT
+    // part of the imported datasets imported.
+    migrate_instrument_start('postImportMissingSource-GetNotProcessed');
+    $query = $this->map->getConnection()->select($this->map->getMapTable(), 'map')
+      ->fields('map')
+      ->condition("needs_update", self::STATUS_IGNORED_NO_SOURCE, '<>');
+    if (is_array($this->idListImported) && !empty($this->idListImported)) {
+      foreach ($this->map->getSourceKeyMap() as $key_name) {
+        $query = $query->condition("map.$key_name", $this->idListImported, 'NOT IN');
+      }
+    }
+    $result = $query->execute();
+    migrate_instrument_stop('postImportMissingSource-GetNotProcessed');
+
+    $rowNoSourceList = $result->fetchAllAssoc('destid1');
+    if (!empty($rowNoSourceList)) {
+      $message = t(
+        '@count item(s) that were added by this source does not exist anymore and will be unpublished.',
+        array('@count' => count($rowNoSourceList))
+      );
+      self::displayMessage($message, 'warning');
+      foreach (array_keys($rowNoSourceList) as $nid) {
+        $dataset_emw = NULL;
+        try {
+          $dataset_emw = entity_metadata_wrapper('node', $nid);
+        } catch (EntityMetadataWrapperException $exception) {
+          self::displayMessage($exception->getMessage(), 'error');
+          // Skip this nid
+          continue;
+        }
+
+        $related_count = 0;
+
+        // Unpublish attached resources.
+        if (isset($dataset_emw->field_resources)) {
+          foreach ($dataset_emw->field_resources->getIterator() as $delta => $resource_emw) {
+            $resource_emw->status->set(0);
+            $resource_emw->save();
+            $related_count++;
+          }
+        }
+
+        // Unpublish attached metadata source.
+        if (module_exists('dkan_dataset_metadata_source')) {
+          if (isset($dataset_emw->field_metadata_sources) && !is_null($dataset_emw->field_metadata_sources->value())) {
+            $dataset_emw->field_metadata_sources->status->set(0);
+          }
+        }
+
+        // Unpublish the dataset.
+        $dataset_emw->status->set(0);
+        $dataset_emw->save();
+
+        // Update the map table.
+        migrate_instrument_start('postImportMissingSource-UpdateNoSource');
+        $results = $this->map->getConnection()->update($this->map->getMapTable())
+          ->fields(array('needs_update' => self::STATUS_IGNORED_NO_SOURCE))
+          ->condition('destid1', $nid)
+          ->execute();
+        migrate_instrument_stop('postImportMissingSource-UpdateNoSource');
+
+        $message = t(
+          'Dataset "@dataset_title"[@nid] and @related_count related content (Resources, ..) unpublished.',
+          array(
+            '@nid' => $dataset_emw->getIdentifier(),
+            '@dataset_title' => $dataset_emw->title->value(),
+            '@related_count' => $related_count,
+          )
+        );
+        self::displayMessage($message, 'warning');
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Pre rollback callback. Deletes all the content related to the imported
+   * datasets before deleting them.
+   *
+   * @param $dataset_nids: nids of datasets imported.
+   */
+  public function prepareRollback($dataset_nids) {
+    foreach ($dataset_nids as $dataset_id) {
+      $dataset_emw = entity_metadata_wrapper('node', $dataset_id);
+      $delete_nids = array();
+
+      // Get resources ids.
+      foreach ($dataset_emw->field_resources as $delta => $resource_emw) {
+        $delete_nids[] = $resource_emw->getIdentifier();
+      }
+
+      // Get metadata source ids if enabled.
+      if (module_exists('dkan_dataset_metadata_source')) {
+        if (isset($dataset_emw->field_metadata_sources)) {
+          $delete_nids[] =  $dataset_emw->field_metadata_sources->getIdentifier();
+        }
+      }
+
+      // Delete all the things related to this dataset.
+      entity_delete_multiple('node', $delete_nids);
+    }
+  }
+
+  /**
+   * Add extra harvest migration fields to the imported dataset.
+   */
+  public function prepareRowAdditionalInfo(&$row) {
+    $additional_info = array(
+      'harvest_object_id' => $row->dkan_harvest_object_id,
+      'harvest_source_id' => $this->dkanHarvestSource->machine_name,
+      'source' => $this->dkanHarvestSource->label,
+    );
+    foreach ($additional_info as $key => $value) {
+      $row->field_additional_info_key[] = substr($key, 0, 254);
+      $row->field_additional_info_value[] = substr($value, 0, 254);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   * Default dataset field mappings.
+   */
+  public function setFieldMappings() {
+    // Node property
+    $this->addFieldMapping('created', 'created');
+    $this->addFieldMapping('changed', 'changed');
+    // Set the default user as root. This will help avoid some of the issues
+    // with anonymous nodes.
+    $this->addFieldMapping('uid', 'uid')
+      ->defaultValue(1);
+    // Set the default dataset status as published.
+    $this->addFieldMapping('status', 'status')
+      ->defaultValue(1);
+
+    $this->addFieldMapping('id', 'uuid');
+    $this->addFieldMapping('path', 'name');
+
+    // Default Dkan Dataset fields.
+    // Primary.
+    $this->addFieldMapping('title', 'title');
+    $this->addFieldMapping('body', 'description');
+    $this->addFieldMapping('field_tags', 'tags');
+    $this->addFieldMapping('field_tags:create_term')
+     ->defaultValue(TRUE);
+    $this->addFieldMapping('field_license', 'license');
+    // Dataset Information.
+    $this->addFieldMapping('field_author', 'author');
+    $this->addFieldMapping('field_contact_email', 'author_email');
+    $this->addFieldMapping('field_spatial', 'spatial');
+    $this->addFieldMapping('field_spatial_geographical_cover', 'spatial_geographical_cover');
+    $this->addFieldMapping('field_frequency', 'frequency');
+    $this->addFieldMapping('field_contact_name', 'contact_name');
+    $this->addFieldMapping('field_contact_email', 'contact_email');
+    // $this->addFieldMapping('og_group_ref', 'group_ids');
+    $this->addFieldMapping('field_additional_info:first', 'additional_info_key');
+    $this->addFieldMapping('field_additional_info:second', 'additional_info_value');
+    $this->addFieldMapping('field_resources', 'resources');
+    $this->addFieldMapping('field_related_content', 'related_content');
+    $this->addFieldMapping('field_related_content:title', 'related_content:title');
+    $this->addFieldMapping('field_related_content:url', 'related_content:url');
+
+    // Optional fields.
+    // dkan_dataset_metadata_source.
+    if (module_exists('dkan_dataset_metadata_source')) {
+      $this->addFieldMapping('field_metadata_sources', 'metadata_sources');
+    }
+
+    //open_data_federal_extras
+    if (module_exists('open_data_federal_extras')) {
+      // Project Open Data Fields.
+      $this->addFieldMapping('field_odfe_bureau_code', 'odfe_bureau_code');
+      $this->addFieldMapping('field_odfe_program_code', 'odfe_program_code');
+      $this->addFieldMapping('field_odfe_landing_page', 'odfe_landing_page');
+      $this->addFieldMapping('field_odfe_rights', 'odfe_rights');
+      $this->addFieldMapping('field_odfe_conforms_to', 'odfe_conforms_to');
+      $this->addFieldMapping('field_odfe_data_quality', 'odfe_data_quality');
+      $this->addFieldMapping('field_odfe_is_part_of', 'odfe_is_part_of');
+      $this->addFieldMapping('field_odfe_language', 'odfe_language');
+      $this->addFieldMapping('field_odfe_investment_uii', 'odfe_investment_uii');
+      $this->addFieldMapping('field_odfe_system_of_records', 'odfe_system_of_records');
+      $this->addFieldMapping('field_odfe_category', 'odfe_category');
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This is s straight copy of the MigrateDkan::createTax() method but adapted
+   * to latest taxonomy_get_term_by_name() function arguments.
+   *
+   * TODO Probably get this to the MigrateDkan class.
+   *
+   * @param $name Taxonomy term name.
+   * @param $vocab_name Taxonomy vocabulary name.
+   *
+   * @return object term. Or null if failed.
+   */
+  public function createTax($name, $vocab_name) {
+    // Make sure that the vocabulary exists before adding terms.
+    $vocab = taxonomy_vocabulary_machine_name_load($vocab_name);
+    if (!$vocab) {
+      $message = t('Vocabulary term @vocab_name does not exists!',
+        array (
+          '@vocab_name' => $vocab_name,
+        ));
+      self::displayMessage($message , 'error');
+      return NULL;
+    }
+
+    if ($term = taxonomy_get_term_by_name($name, $vocab_name)) {
+      $term = array_pop($term);
+      return $term;
+    }
+    else {
+      $term_new = new stdClass();
+      $term_new->name = $name;
+      // Have the vid set for new term is required.
+      $term_new->vid = $vocab->vid;
+      $term_new->vocabulary_machine_name = $vocab_name;
+      if (taxonomy_term_save($term_new) == SAVED_NEW) {
+        // Term object is passed by reference and updated with the appropriate
+        // properties.
+        return $term_new;
+      }
+      else {
+        $message = t('New taxonomy term @name in vocabulary @vocab_name creation failed!',
+          array (
+            '@name' => $name,
+            '@vocab_name' => $vocab_name,
+          ));
+        self::displayMessage($message , 'error');
+        return NULL;
+      }
+    }
+  }
+
+  /**
+   * Helper function to prepare an Object usable for
+   * HarvestMigration::createResourceNode().
+   *
+   * @param $url Resource remote url.
+   * @param $format Resource format. Used to get the correct taxonomy term.
+   * @param $title Optional resource title. If NULL use the url instead.
+   * @param $created Option creation time.
+   * @param $description Option body content.
+   *
+   * @return Object usable for HarvestMigration::createResourceNode(), or
+   * FALSE.
+   */
+  public static function prepareResourceHelper($url, $format=NULL, $title=NULL, $created=NULL, $description=NULL) {
+    $resource = new stdClass();
+
+    // Validate the url
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+      $message = t('Resource remote url (@url) not valid!',
+        array(
+          '@url' => $url,
+        ));
+      self::displayMessage($message, 'error');
+      return FALSE;
+    }
+    else {
+      $resource->url = $url;
+    }
+
+    // Detect the url type. If file set field_link_remote_file. If not set
+    // field_link_api.
+    //
+    // Default format for field_link_remote_file is 'data'.
+    // Default format for field_link_api is 'html'.
+    //
+    // To Detect the field_link_remote_file format:
+    // * check the file extension.
+    // * If not available. Check the file mime-type.
+
+    // url_type. Safe default to url.
+    $resource->url_type = 'api';
+    $format_detected = 'html';
+
+    // Try to get the file extension.
+    $path = parse_url($url, PHP_URL_PATH);
+    $filename = str_replace(array('%20', '_'), array(' ', ' '), pathinfo($path, PATHINFO_FILENAME));
+    $extension = pathinfo($path, PATHINFO_EXTENSION);
+    $extension = strtolower($extension);
+
+    $html_extensions = array('html', 'shtml', 'htm', 'rhtml', 'phtml', 'pht',
+      'php', 'phps', 'php3', 'php3p', 'php4');
+
+    include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
+    $mimetype_mappings = file_default_mimetype_mapping();
+
+    // Make sure the extention is not for html page.
+    // TODO improve the $html_extensions list?
+    if (!empty($extension)
+      && !in_array($extension, $html_extensions)
+      && array_key_exists($extension, $mimetype_mappings['extensions'])) {
+      // This url have an extension. Consider it a file and default the
+      // format_detected to it!
+      $resource->url_type = 'file';
+      $format_detected = $extension;
+    }
+    else {
+      // Cannot get an extension from the url. Check the Headers.
+      $req = drupal_http_request($res->url, array('timeout' => 5));
+      if ($req->code == 200) {
+        $mime = substr($req->headers['content-type'], 0, strpos($req->headers['content-type'], ";"));
+        // Check if the content-type header return a valide mime type that is
+        // not in the $html_extensions array (ie. not a web page). If so
+        // acknowledge the url as a file and save the detected extension.
+        if ($type = recline_get_data_type($mime) && !in_array($type, $html_extensions)) {
+          $resource->url_type = 'file';
+          $format_detected = $type;
+        }
+      }
+    }
+
+    // If the file
+    if ($resource->url_type == 'file') {
+      // Check if this file extension is allowed for field_link_remote_file.
+      $link_field = field_info_instance('node', 'field_link_remote_file', 'resource');
+      $file_extensions = explode(' ', $link_field['settings']['file_extensions']);
+
+      // Reject if the extension is not allowed.
+      if (!in_array($extension, $file_extensions)) {
+        $message = t('Resource remote url (@url) extension (@extension) not allowed',
+          array (
+            '@url' => $url,
+            '@extension' => $extension,
+          ));
+        self::displayMessage($message , 'error');
+        return FALSE;
+      }
+    }
+
+    // Format
+    // Default to detected format if not set.
+    $resource->format = isset($format) ? strtolower($format) : $format_detected;
+
+    // Title
+    $resource->title = isset($title) ? $title : $url;
+
+    // Created
+    $resource->created = isset($created) ? $created : time();
+
+    // Description
+    $resource->description = isset($description) ? $description : '';
+
+    return $resource;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Create a dkan resource node from the values provided.
+   *
+   * @param Array $resource values for the resources node to be created.
+   *  Expected to be prepared with the self::prepareResourceHelper() methode.
+   * @param $save flag to save the node object before returing it or return it
+   * unsaved.
+   * @param $uid User ID to use as author to the created resource. Default to 1.
+   * @param $is_new Set the resource as new.
+   * @param $language Language param for the resource node.
+   *
+   * @return resource node object.
+   */
+  public function createResourceNode(stdClass $res, $save=TRUE, $uid=1, $is_new=TRUE, $language=LANGUAGE_NONE) {
+    // Creates a new resource for every linked file.
+    // Linked files contain title, format, and accessURL.
+    $values = array(
+      'type' => 'resource',
+      'changed' => $res->created,
+      'is_new' => $is_new,
+      "language" => $language,
+      "uid" => $uid,
+      "status" => TRUE,
+    );
+
+    $resource_node = entity_create('node', $values);
+    $resource_emw = entity_metadata_wrapper('node', $resource_node);
+
+    $resource_emw->title = $res->title;
+    $resource_emw->body->value->set($res->description);
+
+    if (isset($res->format)) {
+      $term = $this->createTax($res->format, 'format');
+      if ($term) {
+        $resource_emw->field_format = $term->tid;
+      }
+    }
+
+    if ($res->url_type == 'file') {
+      // Manage file type resources.
+      $file = remote_stream_wrapper_file_load_by_uri($res->url);
+      if (!$file) {
+        $file = remote_stream_wrapper_file_create_by_uri($res->url);
+        $file->status = FILE_STATUS_TEMPORARY;
+      }
+      file_save($file);
+      $resource_emw->field_link_remote_file->set(array(
+        'fid' => $file->fid,
+        'display' => 1,
+      ));
+    }
+    else {
+      // Manage API type resources.
+      $resource_emw->field_link_api->url->set($res->url);
+    }
+
+    // Check if the save flag in on or return the raw node object for
+    // additional alteration
+    if ($save) {
+      $resource_emw->save();
+    }
+    return $resource_emw->raw();
+  }
+
+  /**
+   * Getter for harvest source.
+   */
+  public function getHarvestSource() {
+    return $this->dkanHarvestSource;
+  }
+}
+
+
+class XMLHarvestMigration  extends HarvestMigration {
+
+  public $itemUrl;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct($arguments) {
+    parent::__construct($arguments);
+    $this->itemUrl = drupal_realpath( $this->dkanHarvestSource->getCacheDir()) .
+      '/:id.xml';
+
+    $this->source = new MigrateSourceList(
+      new HarvestList($this->dkanHarvestSource->getCacheDir()),
+      new MigrateItemXML($this->itemUrl),
+      array(),
+      $this->sourceListOptions
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * So we can create our special field mapping class.
+   *
+   * @todo Find a cleaner way to just substitute a different mapping class.
+   *
+   * @param string|null $destination_field
+   *   machine-name of destination field
+   * @param string|null $source_field
+   *   name of source field
+   * @param bool $warn_on_override
+   *   Set to FALSE to prevent warnings when there's an existing mapping
+   *   for this destination field.
+   *
+   * @return MigrateXMLFieldMapping
+   *   MigrateXMLFieldMapping
+   */
+  public function addFieldMapping($destination_field, $source_field = NULL,
+                                  $warn_on_override = TRUE) {
+    // Warn of duplicate mappings.
+    if ($warn_on_override && !is_null($destination_field) && isset($this->codedFieldMappings[$destination_field])) {
+      self::displayMessage(
+        t('!name addFieldMapping: !dest was previously mapped, overridden',
+          array('!name' => $this->machineName, '!dest' => $destination_field)),
+        'warning');
+    }
+    $mapping = new MigrateXMLFieldMapping($destination_field, $source_field);
+    if (is_null($destination_field)) {
+      $this->codedFieldMappings[] = $mapping;
+    }
+    else {
+      $this->codedFieldMappings[$destination_field] = $mapping;
+    }
+    return $mapping;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * A normal $data_row has all the input data as top-level fields - in this
+   * case, however, the data is embedded within a SimpleXMLElement object in
+   * $data_row->xml. Explode that out to the normal form, and pass on to the
+   * normal implementation.
+   */
+  protected function applyMappings() {
+    // We only know what data to pull from the xpaths in the mappings.
+    foreach ($this->getFieldMappings() as $mapping) {
+      $source = $mapping->getSourceField();
+      if ($source && !isset($this->sourceValues->{$source})) {
+        $xpath = $mapping->getXpath();
+        if ($xpath) {
+          // Derived class may override applyXpath().
+          $source_value = $this->applyXpath($this->sourceValues, $xpath);
+          if (!is_null($source_value)) {
+            $this->sourceValues->$source = $source_value;
+          }
+        }
+      }
+    }
+    parent::applyMappings();
+  }
+
+  /**
+   * Gets item from XML using the xpath.
+   *
+   * Default implementation - straightforward xpath application
+   *
+   * @param stdClass $data_row
+   *   row containing items.
+   * @param string $xpath
+   *   xpath used to find the item
+   *
+   * @return SimpleXMLElement
+   *   found element
+   */
+  public function applyXpath($data_row, $xpath) {
+    $result = $data_row->xml->xpath($xpath);
+    if ($result) {
+      if (count($result) > 1) {
+        $return = array();
+        foreach ($result as $record) {
+          $return[] = (string) $record;
+        }
+        return $return;
+      }
+      else {
+        return (string) $result[0];
+      }
+    }
+    else {
+      return NULL;
+    }
+  }
+
+  public function prepare($entity, stdClass $row) {
+    parent::prepare($entity, $row);
   }
 }

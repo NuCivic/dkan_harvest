@@ -9,3 +9,6 @@ projects[dkan_migrate_base][download][type] = git
 projects[dkan_migrate_base][download][url] = https://github.com/NuCivic/dkan_migrate_base.git
 projects[dkan_migrate_base][download][branch] = 7.x-1.x 
 projects[dkan_migrate_base][subdir] = contrib
+
+projects[safeword][version] = 1.13
+projects[safeword][subdir] = contrib
