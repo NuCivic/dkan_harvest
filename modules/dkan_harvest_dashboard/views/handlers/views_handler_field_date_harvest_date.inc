@@ -50,6 +50,8 @@ class views_handler_field_date_harvest_date extends views_handler_field_date {
    * {@inheritdoc}
    */
   function post_execute(&$values) {
+    // Make sure to sort the proccessed views rows if this field is set to be
+    // sortable.
     if (property_exists($this, 'order')) {
       foreach($values as &$value) {
         $value->dkan_harvest_harvest_date = $this->get_value($value);
