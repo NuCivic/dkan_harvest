@@ -239,4 +239,32 @@ class HarvestSource {
      return $harvest_migrate_date;
     }
   }
+
+  /**
+   * Query the migration map table to get the last time the harvest source
+   * migration run.
+   *
+   * @param string @machine_name Harvest Source machine name.
+   *
+   * @return number of datasets imported by the Harvest Source.
+   */
+  public static function getMigrationCountFromMachineName($machine_name) {
+    // Construct the migrate map table name.
+    $migration_machine_name = HarvestSource::getMigrationMachineNameFromName($machine_name);
+    $migrate_map_table = 'migrate_map_' . $migration_machine_name;
+
+    // In case the migration was not run and the table was not created yet.
+    if (!db_table_exists($migrate_map_table)) {
+      return 0;
+    }
+
+    // Only count for successful dataset imports.
+   $result = db_query("SELECT sourceid1 FROM {" . $migrate_map_table . "} WHERE needs_update = :needs_update;",
+     array(
+       ':needs_update' => MigrateMap::STATUS_IMPORTED,
+     )
+   );
+
+   return $result->rowCount();
+  }
 }

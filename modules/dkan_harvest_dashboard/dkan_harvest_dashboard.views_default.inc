@@ -36,6 +36,7 @@ function dkan_harvest_dashboard_views_default_views() {
     'title' => 'title',
     'field_dkan_harveset_type' => 'field_dkan_harveset_type',
     'dkan_harvest_harvest_date' => 'dkan_harvest_harvest_date',
+    'dkan_harvest_harvest_count' => 'dkan_harvest_harvest_count',
   );
   $handler->display->display_options['style_options']['default'] = '-1';
   $handler->display->display_options['style_options']['info'] = array(
@@ -59,6 +60,13 @@ function dkan_harvest_dashboard_views_default_views() {
       'empty_column' => 0,
     ),
     'dkan_harvest_harvest_date' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'dkan_harvest_harvest_count' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -116,6 +124,11 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['fields']['dkan_harvest_harvest_date']['empty'] = 'N/A';
   $handler->display->display_options['fields']['dkan_harvest_harvest_date']['date_format'] = 'time ago';
   $handler->display->display_options['fields']['dkan_harvest_harvest_date']['second_date_format'] = 'long';
+  /* Field: Dkan Harvest: Harvest Migrate Datasets Count */
+  $handler->display->display_options['fields']['dkan_harvest_harvest_count']['id'] = 'dkan_harvest_harvest_count';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_count']['table'] = 'dkan_harvest_dashboard';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_count']['field'] = 'dkan_harvest_harvest_count';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_count']['label'] = 'Datasets Count';
   /* Filter criterion: Content: Published */
   $handler->display->display_options['filters']['status']['id'] = 'status';
   $handler->display->display_options['filters']['status']['table'] = 'node';

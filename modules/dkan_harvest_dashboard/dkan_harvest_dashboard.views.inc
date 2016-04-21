@@ -18,7 +18,7 @@ function dkan_harvest_dashboard_views_data() {
 
   $data['dkan_harvest_dashboard']['dkan_harvest_harvest_date'] = array(
     'title' => t('Harvest Migrate Last Updated'),
-    'help' => t('Date of the Last Harvest Migrate operation for this source.'),
+    'help' => t('Date of the Last Harvest Migrate operation for a Harvest Source.'),
     'field' => array(
       'handler' => 'views_handler_field_date_harvest_date',
       'click sortable' => TRUE,
@@ -28,6 +28,15 @@ function dkan_harvest_dashboard_views_data() {
     // field above.
     'sort' => array(
       'handler' => 'views_handler_sort_date',
+    ),
+  );
+
+  $data['dkan_harvest_dashboard']['dkan_harvest_harvest_count'] = array(
+    'title' => t('Harvest Migrate Datasets Count'),
+    'help' => t('Count of the Dataset Harvested for a Harvest Source'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric_harvest_count',
+      'click sortable' => TRUE,
     ),
   );
 
