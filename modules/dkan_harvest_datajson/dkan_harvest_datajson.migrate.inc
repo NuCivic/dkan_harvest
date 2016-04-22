@@ -8,7 +8,7 @@
 /**
  *
  */
-class PODJSONHarvestMigration extends HarvestMigration {
+class DatajsonHarvestMigration extends HarvestMigration {
 
   public $itemUrl;
 

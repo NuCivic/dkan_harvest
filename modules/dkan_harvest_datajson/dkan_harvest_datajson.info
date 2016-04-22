@@ -5,4 +5,4 @@ project = dkan_harvest
 core = 7.x
 
 dependencies[] = dkan_harvest
-files[] = dkan_harvest_pod.migrate.inc
+files[] = dkan_harvest_datajson.migrate.inc

@@ -8,33 +8,33 @@
 /**
  * Implements hook_harvest_source_types().
  */
-function dkan_harvest_pod_harvest_source_types() {
+function dkan_harvest_datajson_harvest_source_types() {
   return array(
-    'pod_v1_1_json' => array(
-      'machine_name' => 'pod_v1_1_json',
+    'datajson_v1_1_json' => array(
+      'machine_name' => 'datajson_v1_1_json',
       'name' => 'Project Open Data v1.1 JSON',
-      'cache callback' => 'dkan_harvest_pod_cache',
-      'migration class' => 'PODJSONHarvestMigration',
+      'cache callback' => 'dkan_harvest_datajson_cache',
+      'migration class' => 'DatajsonHarvestMigration',
     ),
-    'pod_v1_1_xml' => array(
-      'machine_name' => 'pod_v1_1_xml',
+    'datajson_v1_1_xml' => array(
+      'machine_name' => 'datajson_v1_1_xml',
       'name' => 'Project Open Data v1.1 XML',
-      'cache callback' => 'dkan_harvest_pod_cache',
-      'migration class' => 'PODJSONHarvestMigration',
+      'cache callback' => 'dkan_harvest_datajson_cache',
+      'migration class' => 'DatajsonHarvestMigration',
     ),
   );
 }
 
 /**
  * Cache callback for Project Open Data v1.1 endpoints.
- * Currently support pod_v1_1_json and pod_v1_1_xml dkan_harvest source types.
+ * Currently support datajson_v1_1_json and pod_v1_1_xml dkan_harvest source types.
  *
- * @param HarvestSource $source the source object from a pod endpoint to cache.
+ * @param HarvestSource $source the source object from a datajson endpoint to cache.
  * @param $harvest_updatetime
  *
  * @return HarvestCache
  */
-function dkan_harvest_pod_cache(HarvestSource $source, $harvest_updatetime) {
+function dkan_harvest_datajson_cache(HarvestSource $source, $harvest_updatetime) {
   // This is needed for remote uri.
   $context = stream_context_create(
     array(
@@ -52,26 +52,26 @@ function dkan_harvest_pod_cache(HarvestSource $source, $harvest_updatetime) {
 
   if ($remote) {
     $data = FALSE;
-    if ($source->type->machine_name === 'pod_v1_1_xml') {
+    if ($source->type->machine_name === 'datajson_v1_1_xml') {
       // Convert the XML document to JSON.
       $xml = simplexml_load_string($remote);
       $json = json_encode($xml);
       $data = json_decode($json, TRUE);
     }
-    elseif ($source->type->machine_name === 'pod_v1_1_json') {
+    elseif ($source->type->machine_name === 'datajson_v1_1_json') {
       $data = drupal_json_decode($remote);
     }
 
     // Filter and save the data gathered from the endpoint.
     if ($data) {
-      return dkan_harvest_pod_cache_pod_v1_1_json($data, $source,
+      return dkan_harvest_datajson_cache_pod_v1_1_json($data, $source,
         $harvest_updatetime);
     }
   }
 }
 
 /**
- * Cache the pod_1_1_json datasets.
+ * Cache the datajson_1_1_json datasets.
  *
  * @param Array $data
  * @param HarvestSource $source
@@ -79,7 +79,7 @@ function dkan_harvest_pod_cache(HarvestSource $source, $harvest_updatetime) {
  *
  * @return HarvestCache
  */
-function dkan_harvest_pod_cache_pod_v1_1_json(Array $data, HarvestSource $source, $harvest_updatetime) {
+function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $source, $harvest_updatetime) {
   $harvestCache = new HarvestCache($source, $harvest_updatetime);
 
   $datasets = $data['dataset'];
@@ -88,7 +88,7 @@ function dkan_harvest_pod_cache_pod_v1_1_json(Array $data, HarvestSource $source
   $filters = $source->filters;
   if (!empty($filters)) {
     $datasets = array_filter($datasets, function($dataset) use($filters, &$harvestCache){
-      $dataset_key = dkan_harvest_pod_prepare_item_id($dataset['identifier']);
+      $dataset_key = dkan_harvest_datajson_prepare_item_id($dataset['identifier']);
       // Default action is to DROP the dataset if it does not meet the
       // filtering criteria.
       $accept = FALSE;
@@ -129,7 +129,7 @@ function dkan_harvest_pod_cache_pod_v1_1_json(Array $data, HarvestSource $source
   $excludes = $source->excludes;
   if (!empty($excludes)) {
     $datasets = array_filter($datasets, function($dataset) use($excludes, &$harvestCache){
-      $dataset_key = dkan_harvest_pod_prepare_item_id($dataset['identifier']);
+      $dataset_key = dkan_harvest_datajson_prepare_item_id($dataset['identifier']);
       // Default action is to accept dataset that does not meet the
       // excluding criteria.
       $accept= TRUE;
@@ -165,7 +165,7 @@ function dkan_harvest_pod_cache_pod_v1_1_json(Array $data, HarvestSource $source
   // TODO add defaults and overriddes?
 
   foreach ($datasets as $dataset) {
-    $identifier = dkan_harvest_pod_prepare_item_id($dataset['identifier']);
+    $identifier = dkan_harvest_datajson_prepare_item_id($dataset['identifier']);
     $dataset['harvest_object_id'] = $identifier;
     $dataset['harvest_source_id'] = $source->machine_name;
     $dataset['harvest_last_updated'] = $harvest_updatetime;
@@ -190,7 +190,7 @@ function dkan_harvest_pod_cache_pod_v1_1_json(Array $data, HarvestSource $source
  *
  * Example: "http://example.com/whathat" returns "whatwhat"
  */
-function dkan_harvest_pod_prepare_item_id($identifier) {
+function dkan_harvest_datajson_prepare_item_id($identifier) {
   if (filter_var($identifier, FILTER_VALIDATE_URL)) {
     $identifier = parse_url($identifier, PHP_URL_PATH);
     $frag = explode('/', $identifier);
