@@ -227,7 +227,8 @@ class HarvestSource {
   public static function getMigrationTimestampFromMachineName($machine_name) {
    $migration_machine_name = HarvestSource::getMigrationMachineNameFromName($machine_name);
 
-   $result = db_query("SELECT starttime FROM {migrate_log} WHERE machine_name =
+   // Get the last time (notice the MAX) the migration was run.
+   $result = db_query("SELECT MAX(starttime) FROM {migrate_log} WHERE machine_name =
      :migration_machine_name ORDER BY starttime ASC limit 1;", array(':migration_machine_name' =>
      $migration_machine_name));
 
@@ -235,6 +236,8 @@ class HarvestSource {
 
    if (!empty($result_array)) {
      $harvest_migrate_date = array_pop($result_array);
+     // Migrate saves the timestamps with microseconds. So we drop the extra
+     // info and get only the usual timestamp.
      $harvest_migrate_date = floor($harvest_migrate_date/1000);
      return $harvest_migrate_date;
     }
