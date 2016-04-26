@@ -93,3 +93,14 @@ function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, 
     );
   }
 }
+
+/**
+ * Implements hook_node_delete().
+ */
+function dkan_harvest_sources_node_delete($node) {
+  if ($node->type == 'harvest_source') {
+    // Deregiste (remove all database records) related to this harvest source.
+    $harvest_source = HarvestSource::getHarvestSourceFromNode($node);
+    dkan_harvest_deregister_sources(array($harvest_source));
+  }
+}
