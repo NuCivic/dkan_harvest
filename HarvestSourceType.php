@@ -27,7 +27,7 @@ class HarvestSourceType {
   /**
    * Constructor for HarvestSourceType class.
    */
-  public function __construct(String $machine_name, Array $source_type) {
+  public function __construct($machine_name, array $source_type) {
 
     if (!is_string($machine_name)) {
       // TODO Make sure the type exists.

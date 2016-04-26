@@ -41,7 +41,7 @@ class HarvestSource {
    * @param Array source: Source array containing atleast all the required
    * source elements (As documented above) and any other optional proprety.
    */
-  public function __construct(String $machine_name, Array $source) {
+  public function __construct($machine_name, Array $source) {
     // Required properties.
     if (!is_string($machine_name) || empty($machine_name)) {
       throw new Exception('HarvestSource machine_name invalid!');
@@ -139,7 +139,7 @@ class HarvestSource {
    *
    * TODO Not sure that this is needed anymore.
    */
-  public static function getMachineNameFromName(String $human_name) {
+  public static function getMachineNameFromName($human_name) {
     return preg_replace('@[^a-z0-9-]+@', '_', strtolower($human_name));
   }
 
@@ -150,7 +150,7 @@ class HarvestSource {
    *
    * @return HarvestSource source if found. Else return FALSE.
    */
-  public static function getSourceByMachineName(String $machine_name) {
+  public static function getSourceByMachineName($machine_name) {
     $query = new EntityFieldQuery();
 
     $query->entityCondition('entity_type', 'node')
