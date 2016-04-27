@@ -94,24 +94,6 @@ function dkan_harvest_source_types_definition() {
 }
 
 /**
- * Callback for dkan-harvest-run.
- */
-function dkan_harvest_run() {
-  dkan_harvest_cache();
-  dkan_harvest_migrate();
-}
-
-/**
- * Callback for dkan-migrate-cached-data.
- *
- * Migrate all the source available.
- */
-function dkan_harvest_migrate() {
-  $sources = dkan_harvest_sources_definition();
-  dkan_harvest_migrate_sources($sources);
-}
-
-/**
  * Run the migration for the passed sources.
  *
  * @param $sources: Array of Harvest Sources to migrate.
@@ -195,14 +177,6 @@ function dkan_harvest_get_migration(HarvestSource $source) {
   }
 
   return $migration;
-}
-
-/**
- * Callback for dkan-cache-harvested-data.
- */
-function dkan_harvest_cache() {
-  $sources = dkan_harvest_sources_definition();
-  dkan_harvest_cache_sources($sources);
 }
 
 /**

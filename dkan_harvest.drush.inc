@@ -9,25 +9,19 @@
  * Implements hook_drush_command().
  */
 function dkan_harvest_drush_command() {
-  // Cache the remote ckan endpoint.
-  $items['dkan-cache-harvested-data'] = array(
-    'aliases' => array('dkan-chd'),
-    'description' => 'Caches remote data.json endpoints locally',
-    'callback' => 'dkan_harvest_cache',
-    'drupal dependencies' => array('dkan_harves'),
-  );
-  // Runs the migration.
-  $items['dkan-migrate-cached-data'] = array(
-    'aliases' => array('dkan-mcd'),
-    'description' => 'Migrates cached data.json endpoints',
-    'callback' => 'dkan_harvest_migrate',
-    'drupal dependencies' => array('dkan_harvest'),
-  );
-  // Cache + Migration run.
-  $items['dkan-harvest-run'] = array(
-    'aliases' => array('dkan-hr'),
-    'description' => 'Caches data and runs the migration for data.json endpoints',
-    'callback' => 'dkan_harvest_run',
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest'] = array(
+    'aliases' => array('dkan-h'),
+    'description' => 'Run a harvest (cache and migration) on a single source or all the available sources if no argument is provided.',
+    'callback' => 'dkan_harvest_drush_command_harvest',
+    'arguments' => array(
+      'source_machine_name' =>
+      'The source machine name to run the harvest caching on',
+    ),
+    'options' => array(
+      'skip-hash' => 'Skip hash checking and update all the datasets available in the source.',
+      'disable-rules' => 'List of rules to disable while running this harvest migration.',
+    ),
     'drupal dependencies' => array('dkan_harvest'),
   );
 
@@ -53,6 +47,7 @@ function dkan_harvest_drush_command() {
     ),
     'options' => array(
       'skip-hash' => 'Skip hash checking and update all the datasets available in the source.',
+      'disable-rules' => 'List of rules to disable while running this harvest migration.',
     ),
     'drupal dependencies' => array('dkan_harvest'),
   );
@@ -91,6 +86,17 @@ function dkan_harvest_drush_command() {
 }
 
 /**
+ * Run a harvest operation (cache + migrate) on all the harvest source
+ * available or the source passed as arguments.
+ *
+ * @param $source_machine_name Optional harvest source machine name.
+ */
+function dkan_harvest_drush_command_harvest($source_machine_name) {
+  dkan_harvest_drush_command_cache($source_machine_name);
+  dkan_harvest_drush_command_migrate($source_machine_name);
+}
+
+/**
  * Run harvest cache operation on the source passed as argument.
  *
  * @param $source_machine_name Source machine name to cache
@@ -105,7 +111,8 @@ function dkan_harvest_drush_command_cache($source_machine_name) {
     }
   } else {
     drush_log("Running the harvest caching on all the available sources.", 'notice');
-    dkan_harvest_cache();
+    $sources = dkan_harvest_sources_definition();
+    dkan_harvest_cache_sources($sources);
   }
 }
 
@@ -115,10 +122,13 @@ function dkan_harvest_drush_command_cache($source_machine_name) {
  * @param $source_machine_name Source machine name to migrate
  */
 function dkan_harvest_drush_command_migrate($source_machine_name) {
+  // Gather harvest migration options.
   $options = array(
+    // TODO add supported default migrate import options.
     'dkan_harvest_skip_hash' => drush_get_option('skip-hash', FALSE),
-    // TODO add default migrate options
+    'dkan_harvest_disable_rules' => array_map('trim', explode(',', drush_get_option('disable-rules', ''))),
   );
+
   if (isset($source_machine_name)) {
     if ($source = HarvestSource::getSourceByMachineName($source_machine_name)) {
       drush_log("Running the harvest migration on " . $source_machine_name, 'notice');
@@ -130,7 +140,8 @@ function dkan_harvest_drush_command_migrate($source_machine_name) {
   }
   else {
     drush_log("Running the harvest migration on all the available sources.", 'notice');
-    dkan_harvest_migrate();
+    $sources = dkan_harvest_sources_definition();
+    dkan_harvest_migrate_sources($sources);
   }
 }
 
