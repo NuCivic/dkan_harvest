@@ -97,21 +97,69 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
+   * Runs before an import starts.
+   *
+   * Used to disable any rules which could cause problems during
+   * the import.
+   */
+  public function preImport() {
+    parent::preImport();
+
+    // Skip hash checking if required.
+    if (isset($this->arguments['dkan_harvest_skip_hash']) && $this->arguments['dkan_harvest_skip_hash']) {
+      // TODO add support for overridding the hash mecanisme.
+      $this->dkanHarvestOptSkipHash = TRUE;
+      $this->map->getConnection()->update($this->map->getMapTable())
+        ->fields(array('hash' => NULL))
+        ->execute();
+    }
+
+    // Disable any rules passed in the arguments array (Most probably in the processImport() method).
+    if (!empty($this->arguments['dkan_harvest_disable_rules']) && module_exists('rules')) {
+      if (!is_array($this->arguments['dkan_harvest_disable_rules'])) {
+        $this->arguments['dkan_harvest_disable_rules'] = array($this->arguments['dkan_harvest_disable_rules']);
+      }
+
+      $rules = db_select('rules_config', 'rc')
+        ->fields('rc', array('name'))
+        ->condition('name', $this->arguments['dkan_harvest_disable_rules'], 'IN')
+        ->condition('active', 1)
+        ->execute()
+        ->fetchAll();
+      $this->arguments['dkan_harvest_disable_rules'] = array();
+      foreach ($rules as $rule) {
+        $this->arguments['dkan_harvest_disable_rules'][] = $rule->name;
+      }
+
+      // Check again to ensure we didn't just eliminate everything.
+      if (!empty($this->arguments['dkan_harvest_disable_rules'])) {
+        db_update('rules_config')
+          ->fields(array('active' => 0))
+          ->condition('name', $this->arguments['dkan_harvest_disable_rules'], 'IN')
+          ->execute();
+        rules_clear_cache(TRUE);
+
+        $message = t(
+          'The following rules are disabled: @rules_list',
+          array(
+            '@rules_list' => implode(', ', $this->arguments['dkan_harvest_disable_rules']),
+          ));
+        self::displayMessage($message, 'notice');
+      }
+    }
+  }
+
+  /**
    * {@inheritdoc}
    *
    * Add support for harvest migration specific checks and options.
    */
   public function processImport(array $options = array()) {
     if ($this->getStatus() == MigrationBase::STATUS_IDLE) {
-      // Extra Harvest Migration Arguments.
-      // Skip hash checking.
-      if (isset($options['dkan_harvest_skip_hash']) && $options['dkan_harvest_skip_hash']) {
-        // TODO add support for overridding the hash mecanisme.
-        $this->dkanHarvestOptSkipHash = TRUE;
-        $this->map->getConnection()->update($this->map->getMapTable())
-          ->fields(array('hash' => NULL))
-          ->execute();
-      }
+      // Add any extra Harvest Migration Arguments. The arguments array should
+      // already exist.
+      $this->arguments = array_merge($this->arguments, $options);
+
       parent::processImport($options);
     }
     else {
@@ -356,10 +404,29 @@ class HarvestMigration extends MigrateDKAN {
    */
   public function postImport() {
     parent::postImport();
-    $this->postImportRestoredSource();
+
     // We need the postImportRestoredSource() call to be before the
     // postImportMissingSource() call.
+    $this->postImportRestoredSource();
     $this->postImportMissingSource();
+
+    // Restord any rule disabled in the preImport call. This is restored last
+    // in the postImport call to make sure any processing done is done while
+    // the rules are disabled as well.
+    if (!empty($this->arguments['dkan_harvest_disable_rules']) && module_exists('rules')) {
+      db_update('rules_config')
+        ->fields(array('active' => 1))
+        ->condition('name', $this->arguments['dkan_harvest_disable_rules'], 'IN')
+        ->execute();
+      rules_clear_cache(TRUE);
+
+      $message = t(
+        'The following rules are re-enabled: @rules_list',
+        array(
+          '@rules_list' => implode(', ', $this->arguments['dkan_harvest_disable_rules']),
+          ));
+      self::displayMessage($message, 'notice');
+    }
   }
 
   /**
@@ -388,7 +455,7 @@ class HarvestMigration extends MigrateDKAN {
       $rowRestoredSourceList = $result->fetchAllAssoc('destid1');
       if (!empty($rowRestoredSourceList)) {
         $message = t(
-          '@count item(s) datasets that were previously unpublished is restored by the source and will be republished again.',
+          '@count item(s) datasets that were previously unpublished are restored by the source and will be republished again.',
           array('@count' => count($rowRestoredSourceList))
         );
         self::displayMessage($message, 'warning');
