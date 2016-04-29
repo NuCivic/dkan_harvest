@@ -11,7 +11,7 @@
 function dkan_harvest_drush_command() {
   // Run harvest cache operation on the source passed as argument.
   $items['dkan-harvest'] = array(
-    'aliases' => array('dkan-h'),
+    'aliases' => array('dkan-h', 'dkan-harvest-run', 'dkan-hr'),
     'description' => 'Run a harvest (cache and migration) on a single source or all the available sources if no argument is provided.',
     'callback' => 'dkan_harvest_drush_command_harvest',
     'arguments' => array(
@@ -27,7 +27,7 @@ function dkan_harvest_drush_command() {
 
   // Run harvest cache operation on the source passed as argument.
   $items['dkan-harvest-cache'] = array(
-    'aliases' => array('dkan-hc'),
+    'aliases' => array('dkan-hc', 'dkan-cache-harvested-data', 'dkan-chd'),
     'description' => 'Run a harvest cache on a single source or all the available sources if the argument is not provided.',
     'callback' => 'dkan_harvest_drush_command_cache',
     'arguments' => array(
@@ -39,7 +39,7 @@ function dkan_harvest_drush_command() {
 
   // Run harvest cache operation on the source passed as argument.
   $items['dkan-harvest-migrate'] = array(
-    'aliases' => array('dkan-hm'),
+    'aliases' => array('dkan-hm', 'dkan-migrate-cached-data', 'dkan-mcd'),
     'description' => 'Run a harvest migrate on a single source or all the available sources if the argument is not provided.',
     'callback' => 'dkan_harvest_drush_command_migrate',
     'arguments' => array(
@@ -78,6 +78,9 @@ function dkan_harvest_drush_command() {
     'callback' => 'dkan_harvest_drush_command_deregister',
     'arguments' => array(
       'source_machine_name' => 'The source machine name to run the harvest migration on. If not provided run the harvest ',
+    ),
+    'options' => array(
+      'disable-rules' => 'List of rules to disable while running this harvest migration.',
     ),
     'drupal dependencies' => array('dkan_harvest'),
   );
@@ -151,6 +154,13 @@ function dkan_harvest_drush_command_migrate($source_machine_name) {
  * @param $source_machine_name Source machine name to migrate
  */
 function dkan_harvest_drush_command_rollback($source_machine_name) {
+
+  // Gather harvest migration options.
+  $options = array(
+    // TODO add supported default migrate import options.
+    'dkan_harvest_disable_rules' => array_map('trim', explode(',', drush_get_option('disable-rules', ''))),
+  );
+
   if (!isset($source_machine_name)) {
     $message = t("No source to rollback.");
     drush_log($message, 'error');
@@ -208,6 +218,13 @@ function dkan_harvest_drush_command_status() {
  * @param $source_machine_name
  */
 function dkan_harvest_drush_command_deregister($source_machine_name) {
+
+  // Gather harvest migration options.
+  $options = array(
+    // TODO add supported default migrate import options.
+    'dkan_harvest_disable_rules' => array_map('trim', explode(',', drush_get_option('disable-rules', ''))),
+  );
+
   if (!isset($source_machine_name)) {
     $message = t("No source to deregister");
     drush_log($message, 'error');
@@ -221,5 +238,5 @@ function dkan_harvest_drush_command_deregister($source_machine_name) {
     return FALSE;
   }
 
-  dkan_harvest_deregister_sources(array($harvestSource));
+  dkan_harvest_deregister_sources(array($harvestSource), $options);
 }

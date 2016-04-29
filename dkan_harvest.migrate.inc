@@ -639,16 +639,30 @@ class HarvestMigration extends MigrateDKAN {
     // Node property
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'changed');
+
     // Set the default user as root. This will help avoid some of the issues
     // with anonymous nodes.
     $this->addFieldMapping('uid', 'uid')
       ->defaultValue(1);
+    $this->addFieldMapping('revision_uid', 'revision_uid')
+      ->defaultValue(1);
+
     // Set the default dataset status as published.
     $this->addFieldMapping('status', 'status')
       ->defaultValue(1);
 
+    // Create a new revision if we create or update the dataset.
+    $this->addFieldMapping('revision', 'revision')
+      ->defaultValue(1);
+
     $this->addFieldMapping('id', 'uuid');
     $this->addFieldMapping('path', 'name');
+
+    // Mark the dataset as published if dkan_workflow is there.
+    if (module_exists('dkan_workflow')) {
+      $this->addFieldMapping('workbench_moderation_state_new', 'workbench_moderation_state_new')
+        ->defaultValue('published');
+    }
 
     // Default Dkan Dataset fields.
     // Primary.
@@ -657,7 +671,9 @@ class HarvestMigration extends MigrateDKAN {
     $this->addFieldMapping('field_tags', 'tags');
     $this->addFieldMapping('field_tags:create_term')
      ->defaultValue(TRUE);
-    $this->addFieldMapping('field_license', 'license');
+    $this->addFieldMapping('field_license', 'license')
+      ->defaultValue('notspecified');
+
     // Dataset Information.
     $this->addFieldMapping('field_author', 'author');
     $this->addFieldMapping('field_contact_email', 'author_email');
@@ -930,7 +946,7 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
-   * Getter for harvest source.
+   * Getter for harvest source. This is mainly used for unittests.
    */
   public function getHarvestSource() {
     return $this->dkanHarvestSource;
