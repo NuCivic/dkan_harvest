@@ -1,0 +1,44 @@
+default:
+  suites:
+    default:
+      contexts:
+        - HarvestSourceContext
+        - Drupal\DrupalExtension\Context\MinkContext
+        - Drupal\DrupalExtension\Context\DrupalContext
+        - Drupal\DrupalExtension\Context\MessageContext
+        - Drupal\DKANExtension\Context\DKANContext
+        - Drupal\DKANExtension\Context\PageContext
+        - Drupal\DKANExtension\Context\SearchAPIContext:
+            search_forms:
+              default:
+                form_css: '#dkan-sitewide-dataset-search-form'
+                form_field: 'edit-search'
+                form_button: 'edit-submit'
+                results_css: '.view-dkan-datasets'
+                result_item_css: '.views-row'
+        - Devinci\DevinciExtension\Context\DebugContext:
+            asset_dump_path: %paths.base%/assets
+        - Devinci\DevinciExtension\Context\JavascriptContext:
+            maximum_wait: 30extensions:
+  extensions:
+    Behat\MinkExtension:
+      goutte: ~
+      selenium2:
+        wd_host: "http://localhost:1024/wd/hub"
+      base_url: "http://127.0.0.1:8888"
+      default_session: 'goutte'
+      javascript_session: 'selenium2'
+    Drupal\DrupalExtension:
+      blackbox: ~
+      api_driver: 'drupal'
+      region_map:
+        toolbar: ".tabs.primary"
+      drupal:
+        drupal_root: '../docroot'
+      text:
+        log_out: "Log out"
+      selectors:
+        message_selector: '.alert'
+        error_message_selector: '.alert.alert-error'
+        success_message_selector: '.alert.alert-success'
+        warning_message_selector: '.alert.alert-warning'
