@@ -655,8 +655,10 @@ class HarvestMigration extends MigrateDKAN {
     $this->addFieldMapping('revision', 'revision')
       ->defaultValue(1);
 
-    $this->addFieldMapping('id', 'uuid');
-    $this->addFieldMapping('path', 'name');
+    // Set the uuid indentifier field to the dkan_harvest_object_id provided by
+    // the MigrateSourceList. This should match the dataset file name in the
+    // cache directory.
+    $this->addFieldMapping('uuid', 'dkan_harvest_object_id');
 
     // Mark the dataset as published if dkan_workflow is there.
     if (module_exists('dkan_workflow')) {
