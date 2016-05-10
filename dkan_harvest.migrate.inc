@@ -678,7 +678,6 @@ class HarvestMigration extends MigrateDKAN {
 
     // Dataset Information.
     $this->addFieldMapping('field_author', 'author');
-    $this->addFieldMapping('field_contact_email', 'author_email');
     $this->addFieldMapping('field_spatial', 'spatial');
     $this->addFieldMapping('field_spatial_geographical_cover', 'spatial_geographical_cover');
     $this->addFieldMapping('field_frequency', 'frequency');
