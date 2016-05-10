@@ -849,9 +849,10 @@ class HarvestMigration extends MigrateDKAN {
     // If the file
     if ($resource->url_type == 'file') {
       // Check if this file extension is allowed for field_link_remote_file.
+      // Reduce everything to lowercase to support files with uppercase
+      // extensions.
       $link_field = field_info_instance('node', 'field_link_remote_file', 'resource');
-      $file_extensions = explode(' ', $link_field['settings']['file_extensions']);
-
+      $file_extensions = array_map('strtolower', explode(' ', $link_field['settings']['file_extensions']));
       // Reject if the extension is not allowed.
       if (!in_array($extension, $file_extensions)) {
         $message = t('Resource remote url (@url) extension (@extension) not allowed',
