@@ -12,8 +12,8 @@ dependencies[] = 'open_data_schema_map_dkan'
 dependencies[] = 'dkan_harvest_sources'
 
 files[] = dkan_harvest.migrate.inc
-files[] = HarvestSource.php
-files[] = HarvestSourceType.php
-files[] = HarvestList.php
-files[] = HarvestItem.php
-files[] = HarvestCache.php
+files[] = includes/HarvestSource.php
+files[] = includes/HarvestSourceType.php
+files[] = includes/HarvestList.php
+files[] = includes/HarvestItem.php
+files[] = includes/HarvestCache.php
