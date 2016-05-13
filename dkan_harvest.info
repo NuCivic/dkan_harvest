@@ -10,7 +10,6 @@ dependencies[] = 'dkan_migrate_base'
 dependencies[] = 'open_data_schema_map'
 dependencies[] = 'open_data_schema_pod'
 dependencies[] = 'open_data_schema_map_dkan'
-dependencies[] = 'dkan_harvest_sources'
 dependencies[] = double_field
 dependencies[] = features
 dependencies[] = link

@@ -1,13 +1,13 @@
 <?php
 /**
  * @file
- * dkan_harvest_sources.features.field_base.inc
+ * dkan_harvest.features.field_base.inc
  */
 
 /**
  * Implements hook_field_default_field_bases().
  */
-function dkan_harvest_sources_field_default_field_bases() {
+function dkan_harvest_field_default_field_bases() {
   $field_bases = array();
 
   // Exported field_base: 'field_dkan_harveset_type'
@@ -26,7 +26,7 @@ function dkan_harvest_sources_field_default_field_bases() {
     'module' => 'list',
     'settings' => array(
       'allowed_values' => '',
-      'allowed_values_function' => 'dkan_harvest_sources_field_dkan_harveset_type_allowed_values',
+      'allowed_values_function' => 'dkan_harvest_field_dkan_harveset_type_allowed_values',
     ),
     'translatable' => 0,
     'type' => 'list_text',

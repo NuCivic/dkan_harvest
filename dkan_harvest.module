@@ -1,10 +1,333 @@
 <?php
 /**
  * @file
- * Code for the DKAN Harvest Sources feature.
+ * Code for the DKAN Harvest feature.
  */
 
-include_once 'dkan_harvest_sources.features.inc';
+include_once 'dkan_harvest.features.inc';
+
+// Probably move this to drupal variables.
+define(
+  'DKAN_HARVEST_CACHE_DIR',
+  'public://dkan-harvest-cache'
+);
+
+define(
+  'DKAN_HARVEST_MIGRATION_PREFIX',
+  'dkan_harvest_migrate_'
+);
+
+/**
+ * Load all implementation of the hook_harvest_sources() hook and collect the
+ * returned sources.
+ *
+ * @return Array of HarvestSource objects.
+ */
+function dkan_harvest_sources_definition() {
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type', 'harvest_source')
+    ->propertyCondition('status', 1, '=')
+    ->execute();
+
+  if (empty($result['node'])) {
+    $message = t('No harvest source found.');
+    dkan_harvest_log($message, 'warning');
+    return array();
+  }
+
+  $harvest_sources_nodes = entity_load('node', array_keys($result['node']));
+  $harvest_sources = array();
+
+  foreach ($harvest_sources_nodes as $harvest_sources_node) {
+    $harvest_source = HarvestSource::getHarvestSourceFromNode($harvest_sources_node);
+    if (is_null($harvest_source)) {
+      $message = t('Harvest Source \"@title\" (@nid) cannot be imported!',
+        array('@title' => $harvest_sources_node->title,
+        '@nid' => $harvest_sources_node->nid)
+      );
+      dkan_harvest_log($message, 'warning');
+    }
+    else {
+      $harvest_sources[$harvest_source->machine_name] = $harvest_source;
+    }
+  }
+
+  return $harvest_sources;
+}
+
+/**
+ * Returns configuration for harvest sources types.
+ *
+ * @return Array of HarvestSourceType objects.
+ */
+function dkan_harvest_source_types_definition() {
+  // TODO add source source caching.
+  $source_types_definition = array();
+  $hook = 'harvest_source_types';
+  foreach (module_implements($hook) as $module) {
+    $function = $module . '_' . $hook;
+    $source_type_arrays = $function();
+    $source_types = array();
+    // Get source objects from arrays.
+    foreach ($source_type_arrays as $source_type_key => $source_type_value) {
+      try {
+        $source_type_new = new HarvestSourceType($source_type_key,
+          $source_type_value);
+        $source_types[$source_type_new->machine_name] = $source_type_new;
+      }
+      catch (Exception $e) {
+        // Log as error.
+        $message = t('Failed to import source with message: @exception_message',
+          array(
+            '@exception_message' => $e->getMessage(),
+          ));
+        dkan_harvest_log($message, 'error');
+      }
+    }
+    // If a source uses a similar key for it will be overridden.
+    $source_types_definition = array_merge($source_types_definition,
+      $source_types);
+  }
+
+  return $source_types_definition;
+}
+
+/**
+ * Run the migration for the passed sources.
+ *
+ * @param $sources: Array of Harvest Sources to migrate.
+ * @param $options: Array extra options to pass to the migration.
+ *
+ * @return //TODO
+ */
+function dkan_harvest_migrate_sources(Array $sources, Array $options = array()) {
+  foreach ($sources as $source) {
+    $migration = dkan_harvest_get_migration($source);
+    // Make sure the migration instantiation worked.
+    if ($migration) {
+      $migration->processImport($options);
+    }
+    else {
+      // Log as error.
+      $message = t('Failed to start source harvest migration. Cannot load migration object.');
+      dkan_harvest_log($message, 'error');
+    }
+  }
+}
+
+/**
+ * Rollback the migration for the passed sources.
+ *
+ * @param $sources: Array of Harvest Sources to rollback.
+ * @param $options: Array extra options to pass to the migration.
+ *
+ * @return //TODO
+ */
+function dkan_harvest_rollback_sources(Array $sources, Array $options = array()) {
+  foreach ($sources as $source) {
+    $migration = dkan_harvest_get_migration($source);
+    // Make sure the migration instantiation worked.
+    if ($migration) {
+      $migration->processRollback($options);
+    }
+    else {
+      // Log as error.
+      $message = t('Failed to rollback source harvest migration. Cannot load migration object.');
+      dkan_harvest_log($message, 'error');
+    }
+  }
+}
+
+/**
+ * Register and get the migration class for a harvest source.
+ *
+ * @param HarvestSource $source
+ *
+ * @return HarvestMigration object related to the source. Or FALSE if failed.
+ */
+function dkan_harvest_get_migration(HarvestSource $source) {
+  $harvest_migration_machine_name = $source->getMigrationMachineName();
+
+  // Prepare $arguments to pass to the migration.
+  $arguments = array(
+    // Group all the harvest migration under the "dkan_harvest" group.
+    // TODO better way to utilize the group feature in dkan_harvest (?).
+    'group_name' => 'dkan_harvest',
+    'dkan_harvest_source' => $source,
+  );
+
+  // Register the migration if it does not exist yet or update the arguments if
+  // not.
+  HarvestMigration::registerMigration(
+    $source->type->migration_class,
+    $harvest_migration_machine_name,
+    $arguments
+  );
+
+  // This will make sure the Migration have the latest arguments.
+  $migration = HarvestMigration::getInstance($harvest_migration_machine_name, $source->type->migration_class, $arguments);
+
+  // Probably we should not trust migrations not subclassed from our
+  // HarvestMigration. Altheugh this check should've have happened in the
+  // HarvestType level.
+  if (!isset($migration) || !is_a($migration, 'HarvestMigration')) {
+    dkan_harvest_log(t("Harvest Migration registration failed!"), 'error');
+    return FALSE;
+  }
+
+  return $migration;
+}
+
+/**
+ * Cache a set of sources.
+ *
+ * @param Array $sources: Array of HarvestSource object to harvest.
+ * @param $harvest_updatetime: timestamp of the time to use as the update time.
+ *
+ * @return //TODO
+ */
+function dkan_harvest_cache_sources(Array $sources, $harvest_updatetime=NULL) {
+  if (!isset($harvest_updatetime)) {
+    $harvest_updatetime = microtime();
+  }
+
+  foreach ($sources as $source) {
+    // Make sure the cache directory is cleared.
+    $source->getCacheDir(TRUE);
+
+    // Get the cache callback for the source.
+    $harvestCache = call_user_func(
+      $source->type->cache_callback,
+      $source,
+      $harvest_updatetime
+    );
+
+    if (!isset($harvestCache)) {
+      $message = t('Harvest Cache for @source_machine_name failed!',
+        array(
+          '@source_machine_name' => $source->machine_name,
+        ));
+      dkan_harvest_log($message, 'error');
+    }
+    else {
+      $message = t('Harvest Cache for @source_machine_name completed (processed @cache_processed, failed @cache_failed, saved @cache_saved (filtered @cache_filtered, excluded @cache_excluded), defaulted @cache_defaulted, overridden @cache_overridden).',
+        array(
+          '@source_machine_name' => $source->machine_name,
+          '@cache_processed' => $harvestCache->getProcessedCount(),
+          '@cache_failed' => $harvestCache->getFailedCount(),
+          '@cache_saved' => $harvestCache->getSavedCount(),
+          '@cache_filtered' => $harvestCache->getFilteredCount(),
+          '@cache_excluded' => $harvestCache->getExcludedCount(),
+          '@cache_defaulted' => $harvestCache->getDefaultedCount(),
+          '@cache_overridden' => $harvestCache->getOverriddenCount(),
+        ));
+      dkan_harvest_log($message, 'success');
+    }
+  }
+}
+
+/**
+ * Dump and simple cache callback for dkan_harvest source. Ideally this will
+ * not be used by any source with any slightly advanced requirements.
+ *
+ * @param HarvestSource $source: the source to cache.
+ * @param $cache_dir: the directory where to store the cached files. This is
+ * managed by dkan_harvest.
+ * @param $harvest_updatetime
+ *
+ * @return HarvestCache object with all the needed cache information about the
+ * processed source.
+ */
+function dkan_harvest_cache_default(HarvestSource $source, $harvest_updatetime) {
+  $harvestCache = new HarvestCache($source, $harvest_updatetime);
+
+  if ($source->isRemote()) {
+    $destination = system_retrieve_file($source->uri, $source->getCacheDir(TRUE),
+      FALSE,
+      FILE_EXISTS_REPLACE);
+    if (!$destination) {
+      $harvestCache->setCachEntryFailed('no name');
+    }
+    else {
+      $harvestCache->setCacheEntryProcessed($destination);
+    }
+  }
+  // Local source.
+  else {
+    $files = array();
+    // If the source is a directory, scan for files. If it is a single file then
+    // just use it.
+    if (is_dir($source->uri)) {
+      $files = file_scan_directory($source->uri, '(.*)');
+      $files = array_keys($files);
+    }
+    else {
+      $files[] = $source->uri;
+    }
+
+    foreach ($files as $file_path) {
+      $copied = file_unmanaged_copy($file_path, $source->getCacheDir() . '/' .
+        basename($file_path), FILE_EXISTS_ERROR);
+
+      if (!$copied) {
+        $harvestCache->setCacheEntryFailed(basename($file_path));
+      }
+      else {
+        $harvestCache->setCacheEntryProcessed(basename($file_path));
+      }
+    }
+
+    return $harvestCache;
+  }
+}
+
+/**
+ * Wrapper around migrate deregistration api for dkan harvest sources.
+ *
+ * @param Array $sources Harvest sources to deregister.
+ *
+ */
+function dkan_harvest_deregister_sources(Array $sources) {
+  foreach ($sources as $source) {
+    HarvestMigration::deregisterMigration($source->getMigrationMachineName());
+  }
+}
+
+/**
+ * Base function for logging support. Inspired from
+ * MigrationBase::displayFunction.
+ *
+ * @param $message: The message to output.
+ * @param $level: Optional message severity as understood by drupal_set_message
+ * and drush_log (defaults to 'error').
+ */
+function dkan_harvest_log($message, $type='error') {
+  if (function_exists('drush_log')) {
+    drush_log($message, $type);
+  }
+  else {
+    drupal_set_message($message, $type);
+  }
+
+  // Report to watchdog by defaut.
+  switch ($type) {
+  case 'status':
+    $type = WATCHDOG_INFO;
+    break;
+  case 'warning':
+    $type = WATCHDOG_WARNING;
+    break;
+  case 'error':
+    $type = WATCHDOG_ERROR;
+    break;
+  default:
+    $type = WATCHDOG_NOTICE;
+    break;
+  }
+  watchdog('dkan_harvest', $message, array(), $type);
+}
 
 /**
  * Allowed values for field_dkan_harveset_type field.
@@ -12,7 +335,7 @@ include_once 'dkan_harvest_sources.features.inc';
  * Re-wrap the dkan_harvest_source_types_definition function to return only the
  * needed source types.
  */
-function dkan_harvest_sources_field_dkan_harveset_type_allowed_values() {
+function dkan_harvest_field_dkan_harveset_type_allowed_values() {
   // We only need the machine_names for the source types.
   $allowed_values = array();
   $source_types_definition = dkan_harvest_source_types_definition();
@@ -26,14 +349,14 @@ function dkan_harvest_sources_field_dkan_harveset_type_allowed_values() {
 /**
  * Implements hook_field_attach_validate().
  */
-function dkan_harvest_sources_field_attach_validate($entity_type, $entity, &$errors) {
+function dkan_harvest_field_attach_validate($entity_type, $entity, &$errors) {
   if ($entity_type == 'node' && $entity->type == 'harvest_source') {
     // Validation for the field_dkan_harvest_source_uri field.
     if (isset($entity->field_dkan_harvest_source_uri)) {
       foreach ($entity->field_dkan_harvest_source_uri as $langcode => $field_value_multiple) {
         foreach ($field_value_multiple as $delta => $field_value_single) {
           $uri = $field_value_single['value'];
-          dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, $delta, $errors);
+          dkan_harvest_field_attach_validate_source_uri($uri, $langcode, $delta, $errors);
         }
       }
     }
@@ -48,7 +371,7 @@ function dkan_harvest_sources_field_attach_validate($entity_type, $entity, &$err
  * @param $delta field delta.
  * @param $errors reference errors array pass from the hook_field_attach_validate().
  */
-function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, $delta, &$errors) {
+function dkan_harvest_field_attach_validate_source_uri($uri, $langcode, $delta, &$errors) {
   $matches = array();
   $allowed_protocols = array('http://', 'https://', 'file://', 'public://', 'private://');
   $pattern = '%^(' . implode('|', $allowed_protocols) . ')%';
@@ -60,7 +383,7 @@ function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, 
       case 'private://':
         if (!file_exists($uri)) {
           $errors['field_dkan_harvest_source_uri'][$langcode][$delta][] = array(
-            'error' => 'dkan_harvest_sources_uri_invalid',
+            'error' => 'dkan_harvest_uri_invalid',
             'message' => t('Source local URI does not exists!'),
           );
         }
@@ -70,7 +393,7 @@ function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, 
       case 'https://':
         if (!filter_var($uri, FILTER_VALIDATE_URL)) {
           $errors['field_dkan_harvest_source_uri'][$langcode][$delta][] = array(
-            'error' => 'dkan_harvest_sources_uri_invalid',
+            'error' => 'dkan_harvest_uri_invalid',
             'message' => t('Source remote URI invalid!'),
           );
         }
@@ -79,7 +402,7 @@ function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, 
         // In theory this should not happen and we should have all the allowed
         // protocols specific validation covered. Return a generic error.
         $errors['field_dkan_harvest_source_uri'][$langcode][$delta][] = array(
-          'error' => 'dkan_harvest_sources_uri_invalid',
+          'error' => 'dkan_harvest_uri_invalid',
           'message' => t('Source URI invalid!'),
         );
     }
@@ -87,7 +410,7 @@ function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, 
   else {
     // URI does not match the allowed protocols regex.
     $errors['field_dkan_harvest_source_uri'][$langcode][$delta][] = array(
-      'error' => 'dkan_harvest_sources_uri_not_allowed',
+      'error' => 'dkan_harvest_uri_not_allowed',
       'message' => t('Source URI protocol not allowed! Allowed protocols are %allowed_protocols',
       array('%allowed_protocols' => implode(', ', $allowed_protocols))),
     );
@@ -97,7 +420,7 @@ function dkan_harvest_sources_field_attach_validate_source_uri($uri, $langcode, 
 /**
  * Implements hook_node_delete().
  */
-function dkan_harvest_sources_node_delete($node) {
+function dkan_harvest_node_delete($node) {
   if ($node->type == 'harvest_source') {
     // Deregiste (remove all database records) related to this harvest source.
     $harvest_source = HarvestSource::getHarvestSourceFromNode($node);

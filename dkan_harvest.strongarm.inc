@@ -1,13 +1,13 @@
 <?php
 /**
  * @file
- * dkan_harvest_sources.strongarm.inc
+ * dkan_harvest.strongarm.inc
  */
 
 /**
  * Implements hook_strongarm().
  */
-function dkan_harvest_sources_strongarm() {
+function dkan_harvest_strongarm() {
   $export = array();
 
   $strongarm = new stdClass();

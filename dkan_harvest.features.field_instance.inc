@@ -1,13 +1,13 @@
 <?php
 /**
  * @file
- * dkan_harvest_sources.features.field_instance.inc
+ * dkan_harvest.features.field_instance.inc
  */
 
 /**
  * Implements hook_field_default_field_instances().
  */
-function dkan_harvest_sources_field_default_field_instances() {
+function dkan_harvest_field_default_field_instances() {
   $field_instances = array();
 
   // Exported field_instance: 'node-harvest_source-field_dkan_harveset_type'

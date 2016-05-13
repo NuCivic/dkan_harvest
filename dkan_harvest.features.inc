@@ -1,13 +1,13 @@
 <?php
 /**
  * @file
- * dkan_harvest_sources.features.inc
+ * dkan_harvest.features.inc
  */
 
 /**
  * Implements hook_ctools_plugin_api().
  */
-function dkan_harvest_sources_ctools_plugin_api($module = NULL, $api = NULL) {
+function dkan_harvest_ctools_plugin_api($module = NULL, $api = NULL) {
   if ($module == "strongarm" && $api == "strongarm") {
     return array("version" => "1");
   }
@@ -16,7 +16,7 @@ function dkan_harvest_sources_ctools_plugin_api($module = NULL, $api = NULL) {
 /**
  * Implements hook_node_info().
  */
-function dkan_harvest_sources_node_info() {
+function dkan_harvest_node_info() {
   $items = array(
     'harvest_source' => array(
       'name' => t('Harvest Source'),
