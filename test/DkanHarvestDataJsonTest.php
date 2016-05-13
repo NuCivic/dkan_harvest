@@ -6,7 +6,7 @@
 /**
  *
  */
-class DkanHarvestPODTest extends PHPUnit_Framework_TestCase {
+class DkanHarvestDataJsonTest extends PHPUnit_Framework_TestCase {
 
   /**
    * {@inheritdoc}

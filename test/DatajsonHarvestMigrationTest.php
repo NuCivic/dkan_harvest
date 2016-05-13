@@ -6,7 +6,7 @@
 /**
  *
  */
-class PODJSONHarvestMigrationTest extends PHPUnit_Framework_TestCase {
+class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
 
   /**
    * {@inheritdoc}
