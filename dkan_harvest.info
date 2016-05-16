@@ -1,5 +1,5 @@
-name = dkan_harvest
-description = Harvest data from external sources
+name = DKAN Harvest
+description = Harvest data from external sources into DKAN sites
 package = DKAN Harvest
 project = dkan_harvest
 core = 7.x
