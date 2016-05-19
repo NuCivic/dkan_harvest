@@ -20,7 +20,6 @@ function dkan_harvest_drush_command() {
     ),
     'options' => array(
       'skip-hash' => 'Skip hash checking and update all the datasets available in the source.',
-      'disable-rules' => 'List of rules to disable while running this harvest migration.',
     ),
     'drupal dependencies' => array('dkan_harvest'),
   );
@@ -47,7 +46,6 @@ function dkan_harvest_drush_command() {
     ),
     'options' => array(
       'skip-hash' => 'Skip hash checking and update all the datasets available in the source.',
-      'disable-rules' => 'List of rules to disable while running this harvest migration.',
     ),
     'drupal dependencies' => array('dkan_harvest'),
   );
@@ -80,7 +78,6 @@ function dkan_harvest_drush_command() {
       'source_machine_name' => 'The source machine name to run the harvest migration on. If not provided run the harvest ',
     ),
     'options' => array(
-      'disable-rules' => 'List of rules to disable while running this harvest migration.',
     ),
     'drupal dependencies' => array('dkan_harvest'),
   );
@@ -129,7 +126,6 @@ function dkan_harvest_drush_command_migrate($source_machine_name) {
   $options = array(
     // TODO add supported default migrate import options.
     'dkan_harvest_skip_hash' => drush_get_option('skip-hash', FALSE),
-    'dkan_harvest_disable_rules' => array_map('trim', explode(',', drush_get_option('disable-rules', ''))),
   );
 
   if (isset($source_machine_name)) {
@@ -158,7 +154,6 @@ function dkan_harvest_drush_command_rollback($source_machine_name) {
   // Gather harvest migration options.
   $options = array(
     // TODO add supported default migrate import options.
-    'dkan_harvest_disable_rules' => array_map('trim', explode(',', drush_get_option('disable-rules', ''))),
   );
 
   if (!isset($source_machine_name)) {
@@ -222,7 +217,6 @@ function dkan_harvest_drush_command_deregister($source_machine_name) {
   // Gather harvest migration options.
   $options = array(
     // TODO add supported default migrate import options.
-    'dkan_harvest_disable_rules' => array_map('trim', explode(',', drush_get_option('disable-rules', ''))),
   );
 
   if (!isset($source_machine_name)) {

@@ -45,6 +45,9 @@ class HarvestMigration extends MigrateDKAN {
   // Extra Harvest argument.
   protected $dkanHarvestOptSkipHash = FALSE;
 
+  // Disabled rules during import.
+  protected $dkanHarvestDisabledRules = array();
+
   /**
    * General initialization of a HarvestMigration object.
    */
@@ -115,34 +118,32 @@ class HarvestMigration extends MigrateDKAN {
     }
 
     // Disable any rules passed in the arguments array (Most probably in the processImport() method).
-    if (!empty($this->arguments['dkan_harvest_disable_rules']) && module_exists('rules')) {
-      if (!is_array($this->arguments['dkan_harvest_disable_rules'])) {
-        $this->arguments['dkan_harvest_disable_rules'] = array($this->arguments['dkan_harvest_disable_rules']);
-      }
-
+    if (module_exists('rules') &&
+      !empty(variable_get('dkan_harvest_disable_rules', array()))) {
+      // Make sure that we only alter the status of already enabled rules.
       $rules = db_select('rules_config', 'rc')
         ->fields('rc', array('name'))
-        ->condition('name', $this->arguments['dkan_harvest_disable_rules'], 'IN')
+        ->condition('name', variable_get('dkan_harvest_disable_rules', array()), 'IN')
         ->condition('active', 1)
         ->execute()
         ->fetchAll();
-      $this->arguments['dkan_harvest_disable_rules'] = array();
+
+      // Store all the enabled rules set to be disabled.
       foreach ($rules as $rule) {
-        $this->arguments['dkan_harvest_disable_rules'][] = $rule->name;
+        $this->dkanHarvestDisabledRules[] = $rule->name;
       }
 
       // Check again to ensure we didn't just eliminate everything.
-      if (!empty($this->arguments['dkan_harvest_disable_rules'])) {
+      if (!empty($this->dkanHarvestDisabledRules)) {
         db_update('rules_config')
           ->fields(array('active' => 0))
-          ->condition('name', $this->arguments['dkan_harvest_disable_rules'], 'IN')
+          ->condition('name', $this->dkanHarvestDisabledRules, 'IN')
           ->execute();
         rules_clear_cache(TRUE);
 
-        $message = t(
-          'The following rules are disabled: @rules_list',
+        $message = t('The following rules are disabled: @rules_list',
           array(
-            '@rules_list' => implode(', ', $this->arguments['dkan_harvest_disable_rules']),
+            '@rules_list' => implode(', ', $this->dkanHarvestDisabledRules),
           ));
         self::displayMessage($message, 'notice');
       }
@@ -410,20 +411,19 @@ class HarvestMigration extends MigrateDKAN {
     $this->postImportRestoredSource();
     $this->postImportMissingSource();
 
-    // Restord any rule disabled in the preImport call. This is restored last
+    // Restore any rule disabled in the preImport call. This is restored last
     // in the postImport call to make sure any processing done is done while
     // the rules are disabled as well.
-    if (!empty($this->arguments['dkan_harvest_disable_rules']) && module_exists('rules')) {
+    if (module_exists('rules') && !empty($this->dkanHarvestDisabledRules)) {
       db_update('rules_config')
         ->fields(array('active' => 1))
-        ->condition('name', $this->arguments['dkan_harvest_disable_rules'], 'IN')
+        ->condition('name', $this->dkanHarvestDisabledRules, 'IN')
         ->execute();
       rules_clear_cache(TRUE);
 
-      $message = t(
-        'The following rules are re-enabled: @rules_list',
+      $message = t('The following rules are re-enabled: @rules_list',
         array(
-          '@rules_list' => implode(', ', $this->arguments['dkan_harvest_disable_rules']),
+          '@rules_list' => implode(', ', $this->dkanHarvestDisabledRules),
           ));
       self::displayMessage($message, 'notice');
     }
