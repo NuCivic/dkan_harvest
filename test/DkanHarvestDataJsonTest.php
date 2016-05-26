@@ -26,20 +26,20 @@ class DkanHarvestDataJsonTest extends PHPUnit_Framework_TestCase {
   }
 
   /**
-   * @covers dkan_harvest_prepare_item_id().
+   * @covers dkan_harvest_datajson_prepare_item_id().
    */
-  public function testDKANHarvestPrepareItemId()
+  public function testDKANHarvestDataJsonPrepareItemId()
   {
     $url = 'http://example.com/what';
-    $dir = dkan_harvest_prepare_item_id($url);
+    $dir = dkan_harvest_datajson_prepare_item_id($url);
     $this->assertEquals($dir, 'what');
 
     $url = 'http://example.com/what/now';
-    $dir = dkan_harvest_prepare_item_id($url);
+    $dir = dkan_harvest_datajson_prepare_item_id($url);
     $this->assertEquals($dir, 'now');
 
     $url = 'http://example.com';
-    $dir = dkan_harvest_prepare_item_id($url);
+    $dir = dkan_harvest_datajson_prepare_item_id($url);
     $this->assertEquals($dir, '');
   }
 
