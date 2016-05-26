@@ -6,7 +6,7 @@
 
 include_once 'dkan_harvest.features.inc';
 
-// Probably move this to drupal variables.
+// TODO Probably move this to drupal variables.
 define(
   'DKAN_HARVEST_CACHE_DIR',
   'public://dkan-harvest-cache'
@@ -16,6 +16,40 @@ define(
   'DKAN_HARVEST_MIGRATION_PREFIX',
   'dkan_harvest_migrate_'
 );
+
+/**
+ * Implements hook_modules_enabled().
+ *
+ * Reset the cached harvest source types entries if a new modules implements
+ * the 'harvest_source_types' hook. This is needed to make sure that a the
+ * harvest source types list have all the available types.
+ *
+ * @see dkan_harvest_source_types_definition
+ * @see dkan_harvest_modules_disabled
+ */
+function dkan_harvest_modules_enabled($modules) {
+  $modules_implements = module_implements('harvest_source_types');
+  if(!empty(array_intersect($modules_implements, $modules))) {
+    drupal_static_reset('dkan_harvest_source_types_definition');
+    cache_clear_all('dkan_harvest_source_types_definition', 'cache');
+  }
+}
+
+/**
+ * Implements hook_modules_disabled().
+ *
+ * Reset the cached harvest_source_types if a modules is disabled. We can't
+ * really determine if the disabled module implements the
+ * 'harvest_source_types' hook, so we reset the cached source types definitions
+ * anyway.
+ *
+ * @see dkan_harvest_source_types_definition
+ * @see dkan_harvest_modules_enabled
+ */
+function dkan_harvest_modules_disabled($modules) {
+  drupal_static_reset('dkan_harvest_source_types_definition');
+  cache_clear_all('dkan_harvest_source_types_definition', 'cache');
+}
 
 /**
  * Load all implementation of the hook_harvest_sources() hook and collect the
@@ -58,37 +92,48 @@ function dkan_harvest_sources_definition() {
 }
 
 /**
- * Returns configuration for harvest sources types.
+ * Returns harvest source types added via the "harvest_source_types" hook.
+ * Those entries are cache via using drupal_static and the 'cache' bin.
  *
  * @return Array of HarvestSourceType objects.
  */
 function dkan_harvest_source_types_definition() {
-  // TODO add source source caching.
-  $source_types_definition = array();
-  $hook = 'harvest_source_types';
-  foreach (module_implements($hook) as $module) {
-    $function = $module . '_' . $hook;
-    $source_type_arrays = $function();
-    $source_types = array();
-    // Get source objects from arrays.
-    foreach ($source_type_arrays as $source_type_key => $source_type_value) {
-      try {
-        $source_type_new = new HarvestSourceType($source_type_key,
-          $source_type_value);
-        $source_types[$source_type_new->machine_name] = $source_type_new;
-      }
-      catch (Exception $e) {
-        // Log as error.
-        $message = t('Failed to import source with message: @exception_message',
-          array(
-            '@exception_message' => $e->getMessage(),
-          ));
-        dkan_harvest_log($message, 'error');
-      }
+  $source_types_definition = &drupal_static(__FUNCTION__);
+  if (!isset($source_types_definition)) {
+    if ($cache = cache_get('dkan_harvest_source_types_definition')) {
+      $source_types_definition = $cache->data;
     }
-    // If a source uses a similar key for it will be overridden.
-    $source_types_definition = array_merge($source_types_definition,
-      $source_types);
+    else {
+      $source_types_definition = array();
+      $hook = 'harvest_source_types';
+      foreach (module_implements($hook) as $module) {
+        $function = $module . '_' . $hook;
+        $source_type_arrays = $function();
+        $source_types = array();
+        // Get source objects from arrays.
+        foreach ($source_type_arrays as $source_type_key => $source_type_value) {
+          try {
+            $source_type_new = new HarvestSourceType($source_type_key,
+              $source_type_value);
+            $source_types[$source_type_new->machine_name] = $source_type_new;
+          }
+          catch (Exception $e) {
+            // Log as error.
+            $message = t('Failed to import source with message: @exception_message',
+              array(
+                '@exception_message' => $e->getMessage(),
+              ));
+            dkan_harvest_log($message, 'error');
+          }
+        }
+        // If a source uses a similar key for it will be overridden.
+        $source_types_definition = array_merge($source_types_definition,
+          $source_types);
+      }
+      // populate $source_types_definition with the correct stuff. Set to
+      // CACHE_TEMPORARY to clear it in the next general cache wipe.
+      cache_set('dkan_harvest_source_types_definition', $source_types_definition, 'cache', CACHE_TEMPORARY);
+    }
   }
 
   return $source_types_definition;

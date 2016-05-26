@@ -7,18 +7,13 @@
 
 class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
 
-  // dkan_harvest_test status.
-  public static $dkanHarvestTestBeforClassStatus = TRUE;
-
   /**
    * {@inheritdoc}
    */
   public static function setUpBeforeClass() {
-    // Make sure the test module exporting the test source type.
-    if (!module_exists('dkan_harvest_test')) {
-      self::$dkanHarvestTestBeforClassStatus = FALSE;
-      module_enable(array('dkan_harvest_test'));
-    }
+    // Make sure the test module exporting the test source type is disbled.
+    // This will be enabled during the tests.
+    module_disable(array('dkan_harvest_test'));
   }
 
   /**
@@ -28,10 +23,47 @@ class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Tests for the cache support in the 'source_types' hook.
+   *
+   * @covers ::dkan_harvest_source_types_definition()
+   * @covers ::dkan_harvest_modules_enabled()
+   * @covers ::dkan_harvest_modules_disabled()
+   */
+  public function testDkanHarvestSourceTypesDefinition() {
+    // Make sure that all the harvest source type entries available right now
+    // in the site are cached by 'dkan_harvest_source_types_definition()'.
+    dkan_harvest_source_types_definition();
+    $beforeCache = cache_get('dkan_harvest_source_types_definition');
+    $this->assertTrue(is_array($beforeCache->data));
+    $beforeCount = count($beforeCache->data);
+
+    // Enabling a module that implements the "harvest_source_types" hook should
+    // reset the cached entries.
+    module_enable(array("dkan_harvest_test"));
+    $moduleEnableCache = cache_get('dkan_harvest_source_types_definition');
+    $this->assertFalse($moduleEnableCache);
+
+    // Running the callback should repopulate the cache entry with the latest
+    // harvest source types available in the system.
+    dkan_harvest_source_types_definition();
+    $afterCache = cache_get('dkan_harvest_source_types_definition');
+    $this->assertTrue(is_array($afterCache->data));
+    $afterCount = count($afterCache->data);
+
+    // Run a before/after comparison. Make sure that the test source types
+    // provided by the 'dkan_harvest_test' module are now available.
+    $this->assertGreaterThan($beforeCount, $afterCount);
+    $this->assertArrayHasKey('harvest_test_type', $afterCache->data);
+    $this->assertArrayHasKey('harvest_another_test_type', $afterCache->data);
+  }
+
+  /**
    * Make sure that the allowed harvest type values the the type machine name
    * as key and the type label as value.
    *
    * @covers ::dkan_harvest_field_dkan_harveset_type_allowed_values()
+   *
+   * @depends testDkanHarvestSourceTypesDefinition
    */
   public function testDkanHarvestSourcesFieldDkanHarvesetTypeAllowedValues() {
     $allowed_values_expected = array(
@@ -75,7 +107,7 @@ class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
     // Valid local URI
     $errors = array();
     $uri = 'file://' .
-      getcwd() . '/' . drupal_get_path('module', 'dkan_harvest') .
+    getcwd() . '/' . drupal_get_path('module', 'dkan_harvest') .
       '/test/data/harvest_test_source_local_file/data.json';
     dkan_harvest_field_attach_validate_source_uri($uri, $langcode, $delta, $errors);
     $this->assertEmpty($errors);
@@ -110,8 +142,6 @@ class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
   public static function tearDownAfterClass() {
     // Assuming the test module enabled by now. Restore original status of the
     // modules.
-    if (!self::$dkanHarvestTestBeforClassStatus) {
-      module_disable(array('dkan_harvest_test'));
-    }
+    module_disable(array('dkan_harvest_test'));
   }
 }
