@@ -10,7 +10,7 @@
 function dkan_harvest_field_default_field_instances() {
   $field_instances = array();
 
-  // Exported field_instance: 'node-harvest_source-field_dkan_harveset_type'
+  // Exported field_instance: 'node-harvest_source-field_dkan_harveset_type'.
   $field_instances['node-harvest_source-field_dkan_harveset_type'] = array(
     'bundle' => 'harvest_source',
     'default_value' => array(
@@ -28,11 +28,18 @@ function dkan_harvest_field_default_field_instances() {
         'type' => 'list_default',
         'weight' => 2,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'inline',
+        'module' => 'list',
+        'settings' => array(),
+        'type' => 'list_default',
+        'weight' => 2,
       ),
     ),
     'entity_type' => 'node',
@@ -53,7 +60,7 @@ function dkan_harvest_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_defaults'
+  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_defaults'.
   $field_instances['node-harvest_source-field_dkan_harvest_defaults'] = array(
     'bundle' => 'harvest_source',
     'default_value' => NULL,
@@ -90,11 +97,17 @@ function dkan_harvest_field_default_field_instances() {
         'type' => 'double_field_table',
         'weight' => 6,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 6,
       ),
     ),
     'entity_type' => 'node',
@@ -137,7 +150,7 @@ function dkan_harvest_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_excludes'
+  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_excludes'.
   $field_instances['node-harvest_source-field_dkan_harvest_excludes'] = array(
     'bundle' => 'harvest_source',
     'default_value' => NULL,
@@ -174,11 +187,17 @@ function dkan_harvest_field_default_field_instances() {
         'type' => 'double_field_table',
         'weight' => 4,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 7,
       ),
     ),
     'entity_type' => 'node',
@@ -221,7 +240,7 @@ function dkan_harvest_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_filters'
+  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_filters'.
   $field_instances['node-harvest_source-field_dkan_harvest_filters'] = array(
     'bundle' => 'harvest_source',
     'default_value' => NULL,
@@ -258,11 +277,17 @@ function dkan_harvest_field_default_field_instances() {
         'type' => 'double_field_table',
         'weight' => 3,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 5,
       ),
     ),
     'entity_type' => 'node',
@@ -305,7 +330,53 @@ function dkan_harvest_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'node-harvest_source-field_dkan_harvest_overrides'
+  // Exported field_instance:
+  // 'node-harvest_source-field_dkan_harvest_machine_name'.
+  $field_instances['node-harvest_source-field_dkan_harvest_machine_name'] = array(
+    'bundle' => 'harvest_source',
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'safeword',
+        'settings' => array(),
+        'type' => 'safeword_machine_basic',
+        'weight' => 0,
+      ),
+      'search_result' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'inline',
+        'module' => 'safeword',
+        'settings' => array(),
+        'type' => 'safeword_machine_basic',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'node',
+    'field_name' => 'field_dkan_harvest_machine_name',
+    'label' => 'Machine Name',
+    'required' => 1,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 0,
+      'module' => 'safeword',
+      'settings' => array(),
+      'type' => 'safeword_machine_name_only',
+      'weight' => 1,
+    ),
+  );
+
+  // Exported field_instance:
+  // 'node-harvest_source-field_dkan_harvest_overrides'.
   $field_instances['node-harvest_source-field_dkan_harvest_overrides'] = array(
     'bundle' => 'harvest_source',
     'default_value' => NULL,
@@ -342,11 +413,17 @@ function dkan_harvest_field_default_field_instances() {
         'type' => 'double_field_table',
         'weight' => 5,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 4,
       ),
     ),
     'entity_type' => 'node',
@@ -390,7 +467,7 @@ function dkan_harvest_field_default_field_instances() {
   );
 
   // Exported field_instance:
-  // 'node-harvest_source-field_dkan_harvest_source_uri'
+  // 'node-harvest_source-field_dkan_harvest_source_uri'.
   $field_instances['node-harvest_source-field_dkan_harvest_source_uri'] = array(
     'bundle' => 'harvest_source',
     'default_value' => NULL,
@@ -399,16 +476,23 @@ function dkan_harvest_field_default_field_instances() {
     'display' => array(
       'default' => array(
         'label' => 'above',
-        'module' => 'dkan_dataset_content_types',
+        'module' => 'text',
         'settings' => array(),
-        'type' => 'render_as_link',
+        'type' => 'text_default',
         'weight' => 1,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'inline',
+        'module' => 'dkan_dataset_content_types',
+        'settings' => array(),
+        'type' => 'render_license',
+        'weight' => 1,
       ),
     ),
     'entity_type' => 'node',
@@ -430,45 +514,7 @@ function dkan_harvest_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance:
-  // 'node-harvest_source-field_dkan_harvest_machine_name'
-  $field_instances['node-harvest_source-field_dkan_harvest_machine_name'] = array(
-    'bundle' => 'harvest_source',
-    'default_value' => NULL,
-    'deleted' => 0,
-    'description' => '',
-    'display' => array(
-      'default' => array(
-        'label' => 'above',
-        'module' => 'safeword',
-        'settings' => array(),
-        'type' => 'safeword_machine_basic',
-        'weight' => 0,
-      ),
-      'teaser' => array(
-        'label' => 'above',
-        'settings' => array(),
-        'type' => 'hidden',
-        'weight' => 0,
-      ),
-    ),
-    'entity_type' => 'node',
-    'field_name' => 'field_dkan_harvest_machine_name',
-    'label' => 'Machine Name',
-    'required' => 1,
-    'settings' => array(
-      'user_register_form' => FALSE,
-    ),
-    'widget' => array(
-      'active' => 0,
-      'module' => 'safeword',
-      'settings' => array(),
-      'type' => 'safeword_machine_name_only',
-      'weight' => 1,
-    ),
-  );
-
-  // Exported field_instance: 'node-harvest_source-field_notes'
+  // Exported field_instance: 'node-harvest_source-field_notes'.
   $field_instances['node-harvest_source-field_notes'] = array(
     'bundle' => 'harvest_source',
     'default_value' => NULL,
@@ -482,11 +528,17 @@ function dkan_harvest_field_default_field_instances() {
         'type' => 'text_default',
         'weight' => 7,
       ),
-      'teaser' => array(
+      'search_result' => array(
         'label' => 'above',
         'settings' => array(),
         'type' => 'hidden',
         'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 3,
       ),
     ),
     'entity_type' => 'node',
