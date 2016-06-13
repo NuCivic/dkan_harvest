@@ -51,9 +51,11 @@ features[variable][] = node_preview_harvest_source
 features[variable][] = node_submitted_harvest_source
 features[variable][] = pathauto_node_harvest_source_pattern
 features[views_view][] = dkan_harvest_source_search
+
 files[] = dkan_harvest.migrate.inc
 files[] = includes/HarvestSource.php
 files[] = includes/HarvestSourceType.php
 files[] = includes/HarvestList.php
 files[] = includes/HarvestItem.php
 files[] = includes/HarvestCache.php
+files[] = includes/HarvestMigrateSQLMap.php

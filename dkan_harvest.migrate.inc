@@ -23,10 +23,6 @@ class HarvestMigration extends MigrateDKAN {
     return parent::getInstance($machine_name, $class_name, $arguments);
   }
 
-  // Additional custom status for the map table.
-  // TODO Not sure this is the best place for those map flags.
-  const STATUS_IGNORED_NO_SOURCE = 20;
-
   // Store the harvest source we got from the Migration registration.
   protected $dkanHarvestSource;
 
@@ -82,7 +78,7 @@ class HarvestMigration extends MigrateDKAN {
       'track_last_imported' => TRUE,
     );
 
-    $this->map = new MigrateSQLMap(
+    $this->map = new HarvestMigrateSQLMap(
       $this->machineName,
       $this->dkanHarvestMigrateSQLMapSourceKey,
       $this->dkanHarvestMigrateSQLMapDestinationKey,
@@ -411,6 +407,31 @@ class HarvestMigration extends MigrateDKAN {
     $this->postImportRestoredSource();
     $this->postImportMissingSource();
 
+    // Update the migratino log table with the status of the import. This needs
+    // to happen after self::postImportMissingSource() and
+    // self::postImportRestoredSource() methodes.
+    // Check the logHistory flag to make sure we do have the logID key.
+    if ($this->logHistory) {
+      try {
+        db_merge($this->map->getLogTable())
+          ->key(array('mlid' => $this->logID))
+          ->fields(array(
+            'created' => $this->destination->getCreated(),
+            'updated' => $this->destination->getUpdated(),
+            // Number of source datasets mines the number of processed
+            // datasets.
+            'unchanged' => $this->sourceCount() - $this->total_processed,
+            'failed' => $this->errorCount(),
+            'orphaned' => $this->map->orphanedCount(),
+          ))
+          ->execute();
+      }
+      catch (PDOException $e) {
+        Migration::displayMessage(t('Could not log items status on migration !name',
+          array('!name' => $this->machineName)));
+      }
+    }
+
     // Restore any rule disabled in the preImport call. This is restored last
     // in the postImport call to make sure any processing done is done while
     // the rules are disabled as well.
@@ -434,17 +455,17 @@ class HarvestMigration extends MigrateDKAN {
    * migrate operation but had the source restored.
    */
   private function postImportRestoredSource() {
-    // Remove the STATUS_IGNORED_NO_SOURCE flag and publish the datasets (and
+    // Remove the HarvestMigrateSQLMap::STATUS_IGNORED_NO_SOURCE flag and publish the datasets (and
     // their related content) that had their source disappear in a previous
     // harvest migrate.
 
-    // Get all the rows marked with self::STATUS_IGNORED_NO_SOURCE and
+    // Get all the rows marked with HarvestMigrateSQLMap::STATUS_IGNORED_NO_SOURCE and
     // part of the imported datasets imported.
     if (is_array($this->idListImported) && !empty($this->idListImported)) {
       migrate_instrument_start('postImportRestoredSource-SELECTNOSOURCEPROCESSED');
       $query = $this->map->getConnection()->select($this->map->getMapTable(), 'map')
         ->fields('map')
-        ->condition("needs_update", self::STATUS_IGNORED_NO_SOURCE)
+        ->condition("needs_update", HarvestMigrateSQLMap::STATUS_IGNORED_NO_SOURCE)
         // This will throw an exception if $this->idListImported is empty. We
         // are doing that check before entring this code but if you are
         // refactoring this code make sure to add the relevent checks.
@@ -512,12 +533,12 @@ class HarvestMigration extends MigrateDKAN {
    * but were not processed in this run because the source is not available.
    */
   private function postImportMissingSource() {
-    // Get all the rows NOT marked with self::STATUS_IGNORED_NO_SOURCE and NOT
+    // Get all the rows NOT marked with HarvestMigrateSQLMap::STATUS_IGNORED_NO_SOURCE and NOT
     // part of the imported datasets imported.
     migrate_instrument_start('postImportMissingSource-GetNotProcessed');
     $query = $this->map->getConnection()->select($this->map->getMapTable(), 'map')
       ->fields('map')
-      ->condition("needs_update", self::STATUS_IGNORED_NO_SOURCE, '<>');
+      ->condition("needs_update", HarvestMigrateSQLMap::STATUS_IGNORED_NO_SOURCE, '<>');
     if (is_array($this->idListImported) && !empty($this->idListImported)) {
       foreach ($this->map->getSourceKeyMap() as $key_name) {
         $query = $query->condition("map.$key_name", $this->idListImported, 'NOT IN');
@@ -568,7 +589,7 @@ class HarvestMigration extends MigrateDKAN {
         // Update the map table.
         migrate_instrument_start('postImportMissingSource-UpdateNoSource');
         $results = $this->map->getConnection()->update($this->map->getMapTable())
-          ->fields(array('needs_update' => self::STATUS_IGNORED_NO_SOURCE))
+          ->fields(array('needs_update' => HarvestMigrateSQLMap::STATUS_IGNORED_NO_SOURCE))
           ->condition('destid1', $nid)
           ->execute();
         migrate_instrument_stop('postImportMissingSource-UpdateNoSource');
