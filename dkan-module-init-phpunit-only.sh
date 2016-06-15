@@ -1,6 +1,6 @@
 
 # Name of the current module.
-DKAN_MODULE="dkan_health_status"
+DKAN_MODULE="dkan_harvest"
 
 # Save for test run
 DKAN_MODULE_LINK="$HOME/$DKAN_MODULE/webroot/sites/all/modules/$DKAN_MODULE"
