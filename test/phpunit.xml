@@ -10,7 +10,6 @@
       <file>DkanHarvestDataJsonTest.php</file>
       <file>DkanHarvestSourcesTest.php</file>
       <file>DkanHarvestTest.php</file>
-      <file>HarvestMigrationTest.php</file>
       <file>HarvestSourceTest.php</file>
       <file>HarvestSourceTypeTest.php</file>
     </testsuite>
