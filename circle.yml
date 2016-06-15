@@ -46,7 +46,7 @@ test:
   override:
   # Fix for behat bug not recognizing symlinked feature files.
   #  - bash dkan/test/circle-behat.sh  docroot/profiles/dkan/modules/dkan/dkan_workflow/test/features docroot/profiles/dkan/test/features:
-     - cd webroot/sites/all/modules/dkan_harvest; test/bin/phpunit --bootstrap=test/boot.php -c test/phpunit.xml:
+    - cd webroot/sites/all/modules/dkan_harvest/test; ../bin/phpunit:
         parallel: true
   post:
     - sudo rm -rf webroot/sites/default/settings.php

@@ -65,5 +65,7 @@ else
   drush si minimal --db-url="mysql://ubuntu:@127.0.0.1:3306/circle_test" -y || true
   drush sqlc -y < ~/$DKAN_MODULE/backups/latest.sql
 fi
-drush en $DKAN_MODULE -y
+
+drush make --no-core $DKAN_MODULE_LINK/dkan_harvest.make -y
+drush en dkan_harvest dkan_harvest_datajson -y
 cd ..
