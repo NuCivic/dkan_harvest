@@ -99,7 +99,6 @@ class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
       '/' .
       $source_remote->machine_name;
     $rmdir = drupal_rmdir($source_remote_cachedir_path);
-    $this->assertTrue($rmdir);
 
     $cacheDir = $source_remote->getCacheDir();
     $this->assertFALSE($cacheDir);

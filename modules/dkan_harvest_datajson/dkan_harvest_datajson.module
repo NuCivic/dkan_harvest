@@ -166,9 +166,6 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
 
   foreach ($datasets as $dataset) {
     $identifier = dkan_harvest_datajson_prepare_item_id($dataset['identifier']);
-    $dataset['harvest_object_id'] = $identifier;
-    $dataset['harvest_source_id'] = $source->machine_name;
-    $dataset['harvest_last_updated'] = $harvest_updatetime;
     $dataset_file = implode('/', array($source->getCacheDir(), $identifier));
     $data = drupal_json_encode($dataset);
     $cached = file_put_contents($dataset_file, $data);

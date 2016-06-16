@@ -26,7 +26,7 @@ class HarvestCache {
   /**
    * Constructor for HarvestCache class.
    */
-  public function __construct(HarvestSource $harvest_source = NULL, $harvestcache_time = NULL, Array $processed = array()) {
+  public function __construct(HarvestSource $harvest_source = NULL, $harvestcache_time = NULL, $processed = array()) {
     if (is_a($harvest_source, 'HarvestSource')){
       $this->harvest_source = $harvest_source;
     }
@@ -34,12 +34,12 @@ class HarvestCache {
       throw new Exception('HarvestSource not valid!');
     }
 
-    if (!isset($harvest_source)) {
-      $harvest_source = time();
+    if (!isset($harvestcache_time)) {
+      $harvestcache_time = time();
     }
 
-    $this->harvest_time = $harvestcache_time;
-    $this->cached = $processed;
+    $this->harvestcache_time = $harvestcache_time;
+    $this->processed = $processed;
   }
 
   /**

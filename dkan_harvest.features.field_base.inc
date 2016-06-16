@@ -10,7 +10,7 @@
 function dkan_harvest_field_default_field_bases() {
   $field_bases = array();
 
-  // Exported field_base: 'field_dkan_harveset_type'
+  // Exported field_base: 'field_dkan_harveset_type'.
   $field_bases['field_dkan_harveset_type'] = array(
     'active' => 1,
     'cardinality' => 1,
@@ -32,7 +32,7 @@ function dkan_harvest_field_default_field_bases() {
     'type' => 'list_text',
   );
 
-  // Exported field_base: 'field_dkan_harvest_defaults'
+  // Exported field_base: 'field_dkan_harvest_defaults'.
   $field_bases['field_dkan_harvest_defaults'] = array(
     'active' => 1,
     'cardinality' => -1,
@@ -62,7 +62,7 @@ function dkan_harvest_field_default_field_bases() {
     'type' => 'double_field',
   );
 
-  // Exported field_base: 'field_dkan_harvest_excludes'
+  // Exported field_base: 'field_dkan_harvest_excludes'.
   $field_bases['field_dkan_harvest_excludes'] = array(
     'active' => 1,
     'cardinality' => -1,
@@ -92,7 +92,7 @@ function dkan_harvest_field_default_field_bases() {
     'type' => 'double_field',
   );
 
-  // Exported field_base: 'field_dkan_harvest_filters'
+  // Exported field_base: 'field_dkan_harvest_filters'.
   $field_bases['field_dkan_harvest_filters'] = array(
     'active' => 1,
     'cardinality' => -1,
@@ -122,61 +122,7 @@ function dkan_harvest_field_default_field_bases() {
     'type' => 'double_field',
   );
 
-  // Exported field_base: 'field_dkan_harvest_overrides'
-  $field_bases['field_dkan_harvest_overrides'] = array(
-    'active' => 1,
-    'cardinality' => -1,
-    'deleted' => 0,
-    'entity_types' => array(),
-    'field_name' => 'field_dkan_harvest_overrides',
-    'indexes' => array(),
-    'locked' => 0,
-    'module' => 'double_field',
-    'settings' => array(
-      'first' => array(
-        'maxlength' => 255,
-        'precision' => 10,
-        'scale' => 2,
-        'size' => 'normal',
-        'type' => 'varchar',
-      ),
-      'second' => array(
-        'maxlength' => 255,
-        'precision' => 10,
-        'scale' => 2,
-        'size' => 'normal',
-        'type' => 'varchar',
-      ),
-    ),
-    'translatable' => 0,
-    'type' => 'double_field',
-  );
-
-  // Exported field_base: 'field_dkan_harvest_source_uri'
-  $field_bases['field_dkan_harvest_source_uri'] = array(
-    'active' => 1,
-    'cardinality' => 1,
-    'deleted' => 0,
-    'entity_types' => array(),
-    'field_name' => 'field_dkan_harvest_source_uri',
-    'field_permissions' => array(
-      'type' => 0,
-    ),
-    'indexes' => array(
-      'format' => array(
-        0 => 'format',
-      ),
-    ),
-    'locked' => 0,
-    'module' => 'text',
-    'settings' => array(
-      'max_length' => 255,
-    ),
-    'translatable' => 0,
-    'type' => 'text',
-  );
-
-  // Exported field_base: 'field_dkan_harvest_machine_name'
+  // Exported field_base: 'field_dkan_harvest_machine_name'.
   $field_bases['field_dkan_harvest_machine_name'] = array(
     'active' => 1,
     'cardinality' => 1,
@@ -208,7 +154,61 @@ function dkan_harvest_field_default_field_bases() {
     'type' => 'safeword_title',
   );
 
-  // Exported field_base: 'field_notes'
+  // Exported field_base: 'field_dkan_harvest_overrides'.
+  $field_bases['field_dkan_harvest_overrides'] = array(
+    'active' => 1,
+    'cardinality' => -1,
+    'deleted' => 0,
+    'entity_types' => array(),
+    'field_name' => 'field_dkan_harvest_overrides',
+    'indexes' => array(),
+    'locked' => 0,
+    'module' => 'double_field',
+    'settings' => array(
+      'first' => array(
+        'maxlength' => 255,
+        'precision' => 10,
+        'scale' => 2,
+        'size' => 'normal',
+        'type' => 'varchar',
+      ),
+      'second' => array(
+        'maxlength' => 255,
+        'precision' => 10,
+        'scale' => 2,
+        'size' => 'normal',
+        'type' => 'varchar',
+      ),
+    ),
+    'translatable' => 0,
+    'type' => 'double_field',
+  );
+
+  // Exported field_base: 'field_dkan_harvest_source_uri'.
+  $field_bases['field_dkan_harvest_source_uri'] = array(
+    'active' => 1,
+    'cardinality' => 1,
+    'deleted' => 0,
+    'entity_types' => array(),
+    'field_name' => 'field_dkan_harvest_source_uri',
+    'field_permissions' => array(
+      'type' => 0,
+    ),
+    'indexes' => array(
+      'format' => array(
+        0 => 'format',
+      ),
+    ),
+    'locked' => 0,
+    'module' => 'text',
+    'settings' => array(
+      'max_length' => 255,
+    ),
+    'translatable' => 0,
+    'type' => 'text',
+  );
+
+  // Exported field_base: 'field_notes'.
   $field_bases['field_notes'] = array(
     'active' => 1,
     'cardinality' => -1,

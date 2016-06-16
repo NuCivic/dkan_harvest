@@ -7,11 +7,13 @@
 use Drupal\Driver\DrupalDriver;
 use Drupal\Driver\Cores\Drupal7;
 
-require 'vendor/autoload.php';
+require '../../vendor/autoload.php';
 
 $dir = explode('/sites/', getcwd());
+
 // Path to Drupal.
 $path = $dir[0];
+
 // Host.
 $uri = 'http://localhost';
 
