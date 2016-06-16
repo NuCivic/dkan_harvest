@@ -146,7 +146,7 @@ class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
    * @covers ::dkan_harvest_cache_default()
    */
   public function test_dkan_harvest_cache_default_local_file() {
-    $this->markTestSkipped('Not implemented yet.');
+    $this->markTestIncomplete('Not implemented yet.');
   }
 
   /**
