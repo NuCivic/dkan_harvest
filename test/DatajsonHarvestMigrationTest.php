@@ -137,6 +137,25 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationOldLog = $this->getLogTableFromMigration($migrationOld);
     $globalDatasetCountOld = $this->getGlobalNodeCount();
 
+    /**
+     * Tests for the initial log table status.
+     */
+    // Since the harvest was run only once. We should have exactly one record
+    // in the database.
+    $this->assertEquals(1, count($migrationOldLog));
+
+    // We are interested in comparing only the Nth and the Nth - 1 record from
+    // the log table.
+    // - "created" record should have decreased by 1.
+    // - "unchanged" record should have increased by 1.
+    // - Every other record should be the same.
+    $migrationOldLogLast = end($migrationOldLog);
+    $this->assertEquals(1, $migrationOldLogLast->created);
+
+    // Nothing else should have changed.
+    foreach (array('updated', 'failed', 'orphaned', 'unchanged') as $property) {
+      $this->assertEquals(0, $migrationOldLogLast->{$property});
+    }
 
     // Rerun the harvest without changing the source data.
     // Harvest cache the test source.
