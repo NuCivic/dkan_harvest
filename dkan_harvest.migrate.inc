@@ -1092,7 +1092,7 @@ class XMLHarvestMigration  extends HarvestMigration {
     }
   }
 
-  public function prepare($entity, stdClass $row) {
+  public function prepare(&$entity, stdClass &$row) {
     parent::prepare($entity, $row);
   }
 }
