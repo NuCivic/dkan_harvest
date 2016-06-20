@@ -62,6 +62,18 @@ function dkan_harvest_page_event_log_access($node) {
  * @return A themed table of data and links for harvest source node events.
  */
 function dkan_harvest_page_event_log($node) {
+  // Set the table header.
+  $header = array(
+  'mlid' => array('data' => t('Event ID'), 'field' => 'mlid'),
+  'starttime' => array('data' => t('Date'), 'field' => 'starttime', 'sort' => 'desc'),
+  'duration' => array('data' => t('Duration'), 'field' => 'duration'),
+  'created' => array('data' => t('Created'), 'field' => 'created'),
+  'updated' => array('data' => t('Updated'), 'field' => 'updated'),
+  'failed' => array('data' => t('Failed'), 'field' => 'failed'),
+  'orphaned' => array('data' => t('Orphaned'), 'field' => 'orphaned'),
+  'unchanged' => array('data' =>t('Unchanged'), 'field' => 'unchanged'),
+);
+
   $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
   $harvestSourceMigration = dkan_harvest_get_migration($harvestSource);
   $logTable = $harvestSourceMigration->getMap()->getLogTable();
@@ -74,27 +86,30 @@ function dkan_harvest_page_event_log($node) {
     ->fields('log')
     ->fields('harvest_source_log')
     ->condition('machine_name', $harvestSource->getMigrationMachineName())
-    ->execute();
+    // Add table sort extender.
+    ->extend('TableSort')
+    // Add order by headers.
+    ->orderByHeader($header);
+
+  $query->addExpression('log.endtime - log.starttime', 'duration');
+
+  $query_result = $query->execute();
 
   $results = $query_result->fetchAllAssoc('mlid');
+
+  // Convert from microsecnod to seconds.
+  function timefloor ($microtime) {
+    return floor($microtime/1000);
+  }
 
   // Build the table rows.
   $rows = array();
   foreach ($results as $result) {
-    $timezone = drupal_get_user_timezone();
-    $date_start = new DateTime();
-    $date_start->setTimestamp($result->starttime);
-    $date_start->setTimeZone(new DateTimeZone($timezone));
-
-    $date_end = new DateTime();
-    $date_end->setTimestamp($result->endtime);
-    $date_end->setTimeZone(new DateTimeZone($timezone));
-
     $row = array(
       'data' => array(
         'mlid' => $result->mlid,
-        'date' => format_date($result->starttime),
-        'duration' => $date_start->diff($date_end)->format('%i minutes'),
+        'date' => format_date(timefloor($result->starttime)),
+        'duration' => format_interval(timefloor($result->duration), 2),
         'created' => $result->created,
         'updated' => $result->updated,
         'failed' => $result->failed,
@@ -107,8 +122,6 @@ function dkan_harvest_page_event_log($node) {
     $rows[] = $row;
   }
 
-  // Set the table header.
-  $header = array(t('Event ID'), t('Date'), t('Duration'), t('Created'), t('Updated'), t('Failed'), t('Orphaned'), t('Unchanged'));
 
   // Return properly styled output.
   $build['pager_table'] = array(
