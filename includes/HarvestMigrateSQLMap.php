@@ -170,4 +170,38 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
     $count = $query->execute()->fetchField();
     return $count;
   }
+
+  /**
+   * More generic method to query the map table.
+   *
+   * @parm $needs_update_value
+   * @param $sourceid1_values
+   * @param $sourceid1_condition
+   * @param $destid1_values
+   * @param $destid1_condition
+   *
+   * @result Array with the result keyed by 'sourceid1'
+   */
+  public function lookupMapTable($needs_update_value = HarvestMigrateSQLMap::STATUS_IMPORTED, $sourceid1_values = array(), $sourceid1_condition = "IN", $destid1_values = array(), $destid1_condition = "IN") {
+    migrate_instrument_stop('lookupMapTable');
+    $query = $this->connection->select($this->mapTable, 'map');
+    $query->fields('map');
+
+    if ($needs_update_value !== FALSE) {
+      $query->condition("needs_update", $needs_update_value) ;
+    }
+
+    if (is_array($sourceid1_values) && !empty($sourceid1_values) && in_array($sourceid1_condition, array("IN", "NOT IN"))) {
+      $query->condition('sourceid1', $sourceid1_values, $sourceid1_condition);
+    }
+
+    if (is_array($destid1_values) && !empty($sourceid1_values) && in_array($sourceid1_condition, array("IN", "NOT IN"))) {
+      $query->condition('destid1', $destid1_values, $destid1_condition);
+    }
+
+    $result = $query->execute();
+    $return = $result->fetchAllAssoc('sourceid1');
+    migrate_instrument_stop('lookupMapTable');
+    return $return;
+  }
 }

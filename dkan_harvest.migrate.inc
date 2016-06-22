@@ -402,6 +402,19 @@ class HarvestMigration extends MigrateDKAN {
   public function postImport() {
     parent::postImport();
 
+    // Clean up any previously failed entries that does not have any
+    // destination dataset and that are missing from the processed list.
+    $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, $this->idListImported, "NOT IN", NULL, NULL);
+
+    if (!empty($zombies)) {
+      $zombies_sourceids = array();
+      foreach ($zombies as $zombie) {
+        array_push($zombies_sourceids, $zombie->sourceid1);
+      }
+      $this->displayMessage(t('Deleting previously failed imports that does not exist in the harvest source anymore.'));
+      $this->getMap()->deleteBulk($zombies_sourceids);
+    }
+
     // We need the postImportRestoredSource() call to be before the
     // postImportMissingSource() call.
     $this->postImportRestoredSource();
