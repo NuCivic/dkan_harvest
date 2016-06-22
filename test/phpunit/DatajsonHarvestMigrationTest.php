@@ -307,7 +307,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
   }
 
   /**
-   * Simulate a harvest of a source with updated content.
+   * Simulate a harvest of a source with faulty content.
    *
    * Harvest the same source but with different content. Make sure that:
    * - the dataset record in the harvest source migration map is updated.
@@ -342,7 +342,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationErrorMap = $this->getMapTableFromMigration($migrationError);
 
     // The number of managed datasets record should stay the same.
-    $this->assertEquals(count($migrationErrorMap), '1');
+    $this->assertEquals(count($migrationErrorMap), count($migrationOldMap));
 
     // The number of nodes as a hole should not have changed.
     $globalDatasetCountError = $this->getGlobalNodeCount();
@@ -385,9 +385,9 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
   }
 
   /**
-   * Simulate a harvest of a source with updated content.
+   * Simulate a harvest of an empty source after harvesting the faulty source.
    *
-   * Harvest the same source but with different content. Make sure that:
+   * Harvest the same source but with emtpy content. Make sure that:
    * - the dataset record in the harvest source migration map is updated.
    * - the dataset record in the harvest source migration log table is updated.
    * - The dataset update time is greated.
@@ -419,8 +419,10 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     // Get the map table post empty source harvest.
     $migrationEmptyMap = $this->getMapTableFromMigration($migrationEmpty);
 
-    // The number of managed datasets record should stay the same.
-    $this->assertEquals(count($migrationEmptyMap), count($migrationOldMap));
+    // The number of managed datasets record should have decrised by one (the
+    // faulty item part of the previous import should've been cleaned by now).
+    $this->assertEquals(count($migrationEmptyMap), count($migrationOldMap) - 1);
+
     // The number of nodes as a hole should not have changed.
     $globalDatasetCountEmpty = $this->getGlobalNodeCount();
     $this->assertEquals($globalDatasetCountOld, $globalDatasetCountEmpty);
@@ -450,7 +452,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationOldLogLast = end($migrationOldLog);
     $migrationEmptyLogLast = end($migrationEmptyLog);
 
-    $this->assertEquals($migrationEmptyLogLast->orphaned - 1,
+    $this->assertEquals($migrationEmptyLogLast->orphaned ,
       $migrationOldLogLast->orphaned);
     $this->assertEquals($migrationEmptyLogLast->failed,
       $migrationOldLogLast->failed - 1);
@@ -459,6 +461,38 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       $this->assertEquals($migrationOldLogLast->{$property},
         $migrationEmptyLogLast->{$property});
     }
+  }
+
+  /**
+   * Test for a specific case where a dataset from the source is corrupted and
+   * fails to import. If the harvest source removes the faulty dataset no
+   * record should be left on the map table.
+   */
+  public function testHarvestSourceZombi() {
+
+    //
+    dkan_harvest_rollback_sources(array(self::getErrorTestSource()));
+    dkan_harvest_deregister_sources(array(self::getErrorTestSource()));
+
+    // Harvest the faulty source.
+    dkan_harvest_cache_sources(array(self::getErrorTestSource()));
+    dkan_harvest_migrate_sources(array(self::getErrorTestSource()));
+
+    $migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
+    $migrationErrorMap = $this->getMapTableFromMigration($migrationError);
+    $migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+
+
+    // Harvest the empty source.
+    dkan_harvest_cache_sources(array(self::getEmptyTestSource()));
+    dkan_harvest_migrate_sources(array(self::getEmptyTestSource()));
+
+    $migrationEmpty = dkan_harvest_get_migration(self::getEmptyTestSource());
+    $migrationEmptyMap = $this->getMapTableFromMigration($migrationEmpty);
+    $migrationEmptyLog = $this->getLogTableFromMigration($migrationEmpty);
+
+    $values = $migrationEmpty->getMap()->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, NULL, NULL, NULL, NULL);
+    $this->assertEmpty($migrationEmptyMap);
   }
 
   /**
@@ -552,10 +586,14 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
         ->condition("needs_update", MigrateMap::STATUS_IMPORTED, '=');
       $result = $query->execute();
 
-      $return = array_keys($result->fetchAllAssoc('destid1'));
+      $return = array();
+
+      foreach($result as $record) {
+        if (isset($record->destid1)) {
+          array_push($return, $record->destid1);
+        }
+      }
       return $return;
-    } else {
-      return array();
     }
   }
 
@@ -574,7 +612,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       ->fields('map')
       ->execute();
 
-    return $result->fetchAllAssoc('destid1');
+    return $result->fetchAllAssoc('sourceid1');
   }
 
   /**
