@@ -122,6 +122,27 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
   }
 
   /**
+   * @depends testDatasetCount
+   */
+  public function testModerationState($dataset) {
+    if (!module_exists('dkan_workflow')) {
+      $this->markTestSkipped('dkan_workflow module is not available.');
+    }
+    else {
+      $this->markTestIncomplete('Test for moderation status missing.');
+    }
+  }
+
+  /**
+   * The imported dataset status should be 1 for published.
+   *
+   * @depends testDatasetCount
+   */
+  public function testStatus($dataset) {
+    $this->assertEquals('1', $dataset->status->value());
+  }
+
+  /**
    * Simulate a harvest of a source with unchanged content.
    *
    * Harvest the same source with the same content. Make sure that:
