@@ -488,7 +488,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       'dkan_harvest_datajson_test',
       array(
         'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/dkan_harvest_datajson_test_original.json",
+        "/test/phpunit/data/dkan_harvest_datajson_test_original.json",
         'type' => 'datajson_v1_1_json',
         'label' => 'Dkan Harvest datajson Test Source',
       )
@@ -503,7 +503,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       'dkan_harvest_datajson_test',
       array(
         'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/dkan_harvest_datajson_test_alternative.json",
+        "/test/phpunit/data/dkan_harvest_datajson_test_alternative.json",
         'type' => 'datajson_v1_1_json',
         'label' => 'Dkan Harvest datajson Test Source',
       )
@@ -518,7 +518,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       'dkan_harvest_datajson_test',
       array(
         'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/dkan_harvest_datajson_test_error.json",
+        "/test/phpunit/data/dkan_harvest_datajson_test_error.json",
         'type' => 'datajson_v1_1_json',
         'label' => 'Dkan Harvest datajson Test Source',
       )
@@ -533,7 +533,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       'dkan_harvest_datajson_test',
       array(
         'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/dkan_harvest_datajson_test_empty.json",
+        "/test/phpunit/data/dkan_harvest_datajson_test_empty.json",
         'type' => 'datajson_v1_1_json',
         'label' => 'Dkan Harvest datajson Test Source',
       )

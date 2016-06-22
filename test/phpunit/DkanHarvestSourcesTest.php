@@ -100,7 +100,7 @@ class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
 
     // Invalid Local URI
     $errors = array();
-    $uri = 'file://test/data/harvest_test_source_local_file/data.json';
+    $uri = 'file://test/phpunit/data/harvest_test_source_local_file/data.json';
     dkan_harvest_field_attach_validate_source_uri($uri, $langcode, $delta, $errors);
     $this->assertNotEmpty($errors);
 
@@ -108,7 +108,7 @@ class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
     $errors = array();
     $uri = 'file://' .
     getcwd() . '/' . drupal_get_path('module', 'dkan_harvest') .
-      '/test/data/harvest_test_source_local_file/data.json';
+      '/test/phpunit/data/harvest_test_source_local_file/data.json';
     dkan_harvest_field_attach_validate_source_uri($uri, $langcode, $delta, $errors);
     $this->assertEmpty($errors);
 
