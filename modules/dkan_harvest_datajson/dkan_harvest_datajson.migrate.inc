@@ -161,14 +161,14 @@ class DatajsonHarvestMigration extends HarvestMigration {
   /**
    * Implements prepareRow.
    */
-  public function prepareRow(&$row) {
+  public function prepareRow($row) {
     parent::prepareRow($row);
   }
 
   /**
    *
    */
-  public function prepare(&$dataset_prepare, stdClass &$row) {
+  public function prepare($dataset_prepare, $row) {
     parent::prepare($dataset_prepare, $row);
   }
 }

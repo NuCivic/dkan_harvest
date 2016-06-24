@@ -171,7 +171,7 @@ class HarvestMigration extends MigrateDKAN {
    * Implements MigrateBase::prepareRow().
    * Add common DkanHarvest prepareRow steps.
    */
-  public function prepareRow(&$row) {
+  public function prepareRow($row) {
     parent::prepareRow($row);
     $row->migrate_map_dkan_harvest_object_id = $dkanHarvestSource->machine_name;
     $this->prepareRowAdditionalInfo($row);
@@ -184,7 +184,7 @@ class HarvestMigration extends MigrateDKAN {
    * Implements MigrateBase::prepare().
    * Add common DkanHarvest prepare steps.
    */
-  public function prepare(&$dataset_prepare, stdClass &$row) {
+  public function prepare($dataset_prepare, $row) {
     // Copied from the pod import class. Good candidate for clean up if
     // dkan_harvest provides a unifiyed migration class.
     // Remove empty additional fields.
@@ -210,7 +210,7 @@ class HarvestMigration extends MigrateDKAN {
   /**
    * {@inheritdoc}
    */
-  public function complete(&$dataset, stdClass &$row) {
+  public function complete($dataset, $row) {
     // Added empty callback. This is intended to have the subclass
     // implementation call parent::complete() without running into php error.
   }
@@ -761,7 +761,7 @@ class HarvestMigration extends MigrateDKAN {
    *
    * @return object term. Or null if failed.
    */
-  public function createTax($name, $vocab_name) {
+  public function createTax($name, $vocab_name, $vid=NULL) {
     // Make sure that the vocabulary exists before adding terms.
     $vocab = taxonomy_vocabulary_machine_name_load($vocab_name);
     if (!$vocab) {
@@ -930,15 +930,15 @@ class HarvestMigration extends MigrateDKAN {
    *
    * @return resource node object.
    */
-  public function createResourceNode(stdClass $res, $save=TRUE, $uid=1, $is_new=TRUE, $language=LANGUAGE_NONE) {
+  public function createResourceNode($res) {
     // Creates a new resource for every linked file.
     // Linked files contain title, format, and accessURL.
     $values = array(
       'type' => 'resource',
       'changed' => $res->created,
-      'is_new' => $is_new,
-      "language" => $language,
-      "uid" => $uid,
+      'is_new' => TRUE,
+      "language" => LANGUAGE_NONE,
+      "uid" => 1,
       "status" => TRUE,
     );
 
@@ -973,11 +973,7 @@ class HarvestMigration extends MigrateDKAN {
       $resource_emw->field_link_api->url->set($res->url);
     }
 
-    // Check if the save flag in on or return the raw node object for
-    // additional alteration
-    if ($save) {
-      $resource_emw->save();
-    }
+    $resource_emw->save();
     return $resource_emw->raw();
   }
 
@@ -1105,7 +1101,7 @@ class XMLHarvestMigration  extends HarvestMigration {
     }
   }
 
-  public function prepare(&$entity, stdClass &$row) {
+  public function prepare($entity, $row) {
     parent::prepare($entity, $row);
   }
 }
