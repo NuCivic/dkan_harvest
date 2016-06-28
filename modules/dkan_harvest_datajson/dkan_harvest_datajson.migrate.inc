@@ -37,17 +37,8 @@ class DatajsonHarvestMigration extends HarvestMigration {
  *
  */
   public function setFieldMappings($version = '1.1') {
-    // Set the default user as root. This will help avoid some of the issues
-    // with anonymous nodes.
-    $this->addFieldMapping('uid', 'uid')
-      ->defaultValue(1);
-    // Set the default dataset status as published.
-    $this->addFieldMapping('status', 'status')
-      ->defaultValue(1);
+    parent::setFieldMappings();
 
-    // These are common to both 1.0 and 1.1
-    $this->addFieldMapping('title', 'title');
-    $this->addFieldMapping('body', 'description');
     $this->addFieldMapping('og_group_ref', 'group_id');
 
     $this->addFieldMapping('field_tags', 'keyword');

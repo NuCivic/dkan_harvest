@@ -91,6 +91,28 @@ class HarvestMigration extends MigrateDKAN {
       array('text_format' => 'html')
     );
 
+    // Get the harvest source nid.
+
+    $query = new EntityFieldQuery();
+
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'harvest_source')
+      ->propertyCondition('status', NODE_PUBLISHED)
+      ->fieldCondition('field_dkan_harvest_machine_name', 'machine', $this->dkanHarvestSource->machine_name, '=')
+      // Run the query as user 1.
+      ->addMetaData('account', user_load(1));
+
+    $result = $query->execute();
+
+    if (!isset($result['node'])) {
+      // Something is wrong.
+      $message = t('Cannot look-up the harvest source Node ID');
+      self::displayMessage($message, 'error');
+    }
+
+    $harvest_source_nids = array_keys($result['node']);
+    $this->dkanHarvestSourceNid = array_pop($harvest_source_nids);
+
     // Add Field mappings.
     $this->setFieldMappings();
   }
@@ -174,7 +196,6 @@ class HarvestMigration extends MigrateDKAN {
   public function prepareRow($row) {
     parent::prepareRow($row);
     $row->migrate_map_dkan_harvest_object_id = $dkanHarvestSource->machine_name;
-    $this->prepareRowAdditionalInfo($row);
     $this->idListImported[] = $row->dkan_harvest_object_id;
   }
 
@@ -235,12 +256,12 @@ class HarvestMigration extends MigrateDKAN {
       entity_delete_multiple('node', $field_resources_ids);
     }
 
-    if (is_array($row->resources) && !empty($row->resources)) {
+    if (isset($row->resources) && is_array($row->resources) && !empty($row->resources)) {
       // Delete existing resources in case the dataset is updated.
       $field_resources_value = array();
       foreach ($row->resources as $resource_row) {
         $resource_node = $this->createResourceNode($resource_row);
-        // TODO check
+        // TODO add check?
         $field_resources_value[] = $resource_node->nid;
       }
 
@@ -651,21 +672,6 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
-   * Add extra harvest migration fields to the imported dataset.
-   */
-  public function prepareRowAdditionalInfo(&$row) {
-    $additional_info = array(
-      'harvest_object_id' => $row->dkan_harvest_object_id,
-      'harvest_source_id' => $this->dkanHarvestSource->machine_name,
-      'source' => $this->dkanHarvestSource->label,
-    );
-    foreach ($additional_info as $key => $value) {
-      $row->field_additional_info_key[] = substr($key, 0, 254);
-      $row->field_additional_info_value[] = substr($value, 0, 254);
-    }
-  }
-
-  /**
    * {@inheritdoc}
    * Default dataset field mappings.
    */
@@ -693,6 +699,10 @@ class HarvestMigration extends MigrateDKAN {
     // the MigrateSourceList. This should match the dataset file name in the
     // cache directory.
     $this->addFieldMapping('uuid', 'dkan_harvest_object_id');
+
+    // Set the harvest source entity reference in the dataset node.
+    $this->addFieldMapping('field_harvest_source_ref', 'harvest_source_ref')
+    ->defaultValue(array($this->dkanHarvestSourceNid));
 
     // Mark the dataset as published if dkan_workflow is there.
     if (module_exists('dkan_workflow')) {
