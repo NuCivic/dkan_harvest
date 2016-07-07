@@ -206,14 +206,6 @@ class HarvestMigration extends MigrateDKAN {
    * Add common DkanHarvest prepare steps.
    */
   public function prepare($dataset_prepare, $row) {
-    // Copied from the pod import class. Good candidate for clean up if
-    // dkan_harvest provides a unifiyed migration class.
-    // Remove empty additional fields.
-    if (isset($dataset_prepare->field_additional_info[LANGUAGE_NONE][0])
-      && $dataset_prepare->field_additional_info[LANGUAGE_NONE][0]['first'] == NULL) {
-      unset($dataset_prepare->field_additional_info);
-    }
-
     // XXX copied from pod migration.
     if (isset($row->modified) && $row->modified != '') {
       $dataset_prepare->migration_changed_date = $row->modified;
@@ -676,9 +668,6 @@ class HarvestMigration extends MigrateDKAN {
    * Default dataset field mappings.
    */
   public function setFieldMappings() {
-    // Node property
-    $this->addFieldMapping('created', 'created');
-    $this->addFieldMapping('changed', 'changed');
 
     // Set the default user as root. This will help avoid some of the issues
     // with anonymous nodes.
@@ -711,6 +700,9 @@ class HarvestMigration extends MigrateDKAN {
     }
 
     // Default Dkan Dataset fields.
+    // Node property
+    $this->addFieldMapping('created', 'created');
+    $this->addFieldMapping('changed', 'changed');
     // Primary.
     $this->addFieldMapping('title', 'title');
     $this->addFieldMapping('body', 'description');
@@ -728,8 +720,6 @@ class HarvestMigration extends MigrateDKAN {
     $this->addFieldMapping('field_contact_name', 'contact_name');
     $this->addFieldMapping('field_contact_email', 'contact_email');
     // $this->addFieldMapping('og_group_ref', 'group_ids');
-    $this->addFieldMapping('field_additional_info:first', 'additional_info_key');
-    $this->addFieldMapping('field_additional_info:second', 'additional_info_value');
     $this->addFieldMapping('field_resources', 'resources');
     $this->addFieldMapping('field_related_content', 'related_content');
     $this->addFieldMapping('field_related_content:title', 'related_content:title');
@@ -992,6 +982,18 @@ class HarvestMigration extends MigrateDKAN {
    */
   public function getHarvestSource() {
     return $this->dkanHarvestSource;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Change the default to not warn as overriding field mapping is common
+   * practice for the HarvestMigration subclasses.
+   */
+  public function addFieldMapping($destination_field, $source_field = NULL,
+    $warn_on_override = FALSE) {
+    parent::addFieldMapping($destination_field, $source_field,
+      $warn_on_override);
   }
 }
 
