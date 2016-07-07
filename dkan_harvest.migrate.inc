@@ -992,7 +992,7 @@ class HarvestMigration extends MigrateDKAN {
    */
   public function addFieldMapping($destination_field, $source_field = NULL,
     $warn_on_override = FALSE) {
-    parent::addFieldMapping($destination_field, $source_field,
+    return parent::addFieldMapping($destination_field, $source_field,
       $warn_on_override);
   }
 }
