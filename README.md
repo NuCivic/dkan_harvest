@@ -2,15 +2,12 @@ DKAN Harvest is a module that provides a common harvesting framework for Dkan
 extensions and adds a CLI and a WUI to DKAn to manage harvesting sources and
 jobs.
 
-### What do you mean by `harvest open data`?
-
-Grab open data from the web and create [DKAN's](http://nucivic.com/dkan)
-datasets and resources from it.
-
 ### How does it works?
 
-It saves the subscribed data locally to files in `drupal's public:// folder`.
-Then it runs a migration that creates the `dataset` and `resource` DKAN nodes.
+DKAN Harvest is built on top of the legendary
+[migrate](https://www.drupal.org/project/migrate) module that consume a source
+api to download the data locally to the local drupal `public://` and process it
+to create the associated `dataset` and `resource` DKAN nodes.
 
 ## Usage
 ### Add a Harvest Source
@@ -41,6 +38,30 @@ dashboard and select a task from the **Operations** dropdown.
 
 ![Harvest Dashboard Operations](harvest_dashboard_operations.png)
 
+### Harvest Source Page
+#### Main page
+
+Harvest Source nodes have a public page that the public can use to view,
+filter, and search datasets harvested from a local or remote source. The nodes
+are accesable via the `harvest_source/<title>`url.
+
+![Harvest Source Page](harvest_source_page.png)
+
+Adding support for the harvest sources in the default DKAN search page is in the TODO list.
+
+#### Event log
+
+The event log page is accecable from the **Event Log** tab available on the
+Harvest Source page and provides a way to review the evolution of the harvest
+source during time.
+
+![Harvest Source Event Log Page](harvest_source_event_log.png)
+
+The information is managed by the core `dkan_harvest` via a per-harvest source
+`migrate_log` table that tracks the number of datasets created, updated,
+failed, orphaned, and unchanged.
+
+Presenting the event log via some easy to parse charts is in the TODO list.
 ### Drush
 
 DKAN Harvest provides multiple drush commands to manage harvest sources and
@@ -71,7 +92,7 @@ $ drush --user=1 dkan-harvest test_harvest_source
 $ drush --user=1 dkan-h test_harvest_source
 ```
 
-### Run a harvest cache 
+### Run a harvest cache
 
 ```sh
 # Run a harvest cache operation on all the harvest sources available.
@@ -103,7 +124,7 @@ $ drush --user=1 dkan-hm test_harvest_source
 
 DKAN developers can use the api provided by DKAN Harvest to add support for
 additioanl harvest source types. The `dkan_harvest_datajson` module encapsulate
-the example implementation providing support for POD type sources.
+the reference implementation providing support for POD type sources.
 
 If you need to harvest from an end point type other then POD. You can extend
 the DKAN Harvest APIs to implement said support by following a simple
@@ -204,24 +225,88 @@ from the HarvestSource object via the `HarvestSource::filters`,
 
 #### Migration Class
 
-The harvest migration is encapsulated in the `HarvestMigration` class. Core
-DKAN Harvest will support only migration classes extended from
-`HarvestMigration`.
+The common harvest migration logic is encapsulated in the `HarvestMigration`
+class. Core DKAN Harvest will support only migration classes extended from
+`HarvestMigration`. This class is responsible for consuming the downloaded data
+during the harvest cache step to create the DKAN `dataset` and associated
+nodes.
 
-##### HarvestMigration::__construct()
-##### HarvestMigration::setFieldMappings()
-##### Resources Management
+Implementing a Harvest Source Type Migration class is the matter of checking
+couple of boxes:
+* Wire the cached files on the `HarvestMigration::__construct()` method.
+* Override the fields mapping on the `HarvestMigration::setFieldMappings()` method.
+* Add alternate logic for existing default DKAN fields or extra logic for
+  custom fields on the `HarvestMigration::prepareRow()` and the
+  `HarvestMigration::prepare()`.
+
+Working on the Migration Class for Harvest Source Type should be straitforward,
+but a good knowladge on how [migrate
+works](https://www.drupal.org/node/1006982) is a big help.
+
+##### `HarvestMigration::__construct()`
+
+Setting the `MigrateSourceList` is the only logic required during the
+construction of the extended `HarvestMigration`. During the harvest migration
+we can't reliably determin and parse the type of cache file (JSON, XML, etc..)
+so we still need to provide this information to the Migration class via the
+`MigrateItem` variable. the Migrate module provide different helpful class for
+different input file parsing (`MigrateItemFile`, `MigrateItemJSON`,
+`MigrateItemXML`). For the the POD `dkan_harvest_datajson` reference
+implementation we use the `MigrateItemJSON` class to read the JSON files
+downloaded from data.json end-points.
+
+```php
+public function __construct($arguments) {
+  parent::__construct($arguments);
+  $this->itemUrl = drupal_realpath($this->dkanHarvestSource->getCacheDir()) .
+    '/:id';
+
+  $this->source = new MigrateSourceList(
+    new HarvestList($this->dkanHarvestSource->getCacheDir()),
+    new MigrateItemJSON($this->itemUrl),
+    array(),
+    $this->sourceListOptions
+  );
+}
+```
+
+##### `HarvestMigration::setFieldMappings()`
+Mapping the data from the.
+
+##### Resources import
+The base `HarvestMigration` class provides.
+
+##### [DKAN Workflow](https://github.com/NuCivic/dkan_workflow) support
+By default, DKAN Harvest will make sure that the harvested dataset node will be
+set to the `published` moderation state if the DKAN Workflow module is enabled
+on the DKAN site. This can be changed at the fields mapping level by overriding
+the `workbench_moderation_state_new` field.
+
+##### [DKAN Dataset Metadata Source](https://github.com/NuCivic/dkan_dataset_metadata_source) support
+If DKAN dataset metadata source is available. DKAN harvest will take care of
+creating the `dkan_dataset_metadata_source` node and linking a copy of the
+cached file to it.
 
 ### Tests
 #### PHPUnit tests
 
-All the current PHPUnit tests for DKAN Harvest are available in the
-`test/phpunit/` folder.
+All the PHPUnit tests for DKAN Harvest are available in the
+`test/phpunit/` folder. All the dependencies are available in the `composer.json` file in the root folder. To run the tests:
+* Make sure that you are currently on a working DKAN site.
+* Change the `$path` variable in the `test/phpunit/boot.php`to point to the
+  current drupal root folder.
+* `composer install`
+* Inside the `test/phpunit` directory, run `../../bin/phpunit`
 
 #### Behat tests
 
-All the current PHPUnit tests for DKAN Harvest are available in the
-`test/behat/` folder.
+All the current Behat tests for DKAN Harvest are available in the `test/behat/`
+folder. All the dependencies are available in the `composer.json` file in the
+root folder. To run the tests:
+* Make sure that you are currently on a working DKAN site.
+* Change the `test/behat/behat.yml` to match your current envirement.
+* `composer install`
+* Inside the `test/behat` directory, run `../../bin/behat`
 
 ## Todo's
 
