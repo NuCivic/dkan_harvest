@@ -271,21 +271,67 @@ public function __construct($arguments) {
 ```
 
 ##### `HarvestMigration::setFieldMappings()`
-Mapping the data from the.
+The default Mapping for all the default DKAN fields and properties is done on
+the `HarvestMigration::setFieldMapping()` method. Overriding one or many field
+mapping is done by overrrding the `setFieldMapping()` in the child class and
+add/update the new/changed fields.
+
+For example to override the mapping for the `og_group_ref` field.
+```php
+  public function setFieldMappings() {
+    parent::setFieldMappings();
+    $this->addFieldMapping('og_group_ref', 'group_id');
+```
 
 ##### Resources import
-The base `HarvestMigration` class provides.
+The base `HarvestMigration` class will (by default) look for a `$row->resources` objects
+array that should contain all the data needed for constructing the resource
+node(s) associated with the dataset. the helper method
+`HarvestMigration::prepareResourceHelper()` should make creating the
+`resources` array items more streamlined.
 
+Example code snippet:
+```php
+/**
+ * Implements prepareRow.
+ */
+public function prepareRow($row) {
+  // Redacted code
+  
+  $row->resources = $this->prepareRowResources($row->xml);
+  
+  // Redacted code
+}
+```
+
+##### [DKAN Dataset Metadata Source](https://github.com/NuCivic/dkan_dataset_metadata_source) support
+If DKAN dataset metadata source is available. DKAN harvest will take care of
+creating the `dkan_dataset_metadata_source` node and linking a copy of the
+cached file to it if the `$row->metadata_source` object set setup with all the
+needed info.
+
+Example code snippet:
+```php
+/**
+ * Implements prepareRow.
+ */
+public function prepareRow($row) {
+  // Redacted code
+  
+  $row->metadata_source = self::prepareMetadataSourceHelper(
+    $metadata_source_cached_filepath,
+    'ISO-19115 Metadata for ' . $row->dkan_harvest_object_id,
+    'ISO 19115-2'
+  );
+  
+  // Redacted code
+}
+```
 ##### [DKAN Workflow](https://github.com/NuCivic/dkan_workflow) support
 By default, DKAN Harvest will make sure that the harvested dataset node will be
 set to the `published` moderation state if the DKAN Workflow module is enabled
 on the DKAN site. This can be changed at the fields mapping level by overriding
 the `workbench_moderation_state_new` field.
-
-##### [DKAN Dataset Metadata Source](https://github.com/NuCivic/dkan_dataset_metadata_source) support
-If DKAN dataset metadata source is available. DKAN harvest will take care of
-creating the `dkan_dataset_metadata_source` node and linking a copy of the
-cached file to it.
 
 ### Tests
 #### PHPUnit tests
