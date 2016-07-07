@@ -28,9 +28,9 @@ class DatajsonHarvestMigration extends HarvestMigration {
     );
   }
 
-/**
- *
- */
+  /**
+   * {@inheritdoc}
+   */
   public function setFieldMappings($version = '1.1') {
     parent::setFieldMappings();
     $this->addFieldMapping('og_group_ref', 'group_id');
