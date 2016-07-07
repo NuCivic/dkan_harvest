@@ -17,17 +17,12 @@ class DatajsonHarvestMigration extends HarvestMigration {
    */
   public function __construct($arguments) {
     parent::__construct($arguments);
-    $this->version = isset($arguments['version']) ? $arguments['version'] : '1.1';
-
     $this->itemUrl = drupal_realpath($this->dkanHarvestSource->getCacheDir()) .
       '/:id';
-
-    $fields = $this->getDataJsonDatasetFields();
 
     $this->source = new MigrateSourceList(
       new HarvestList($this->dkanHarvestSource->getCacheDir()),
       new MigrateItemJSON($this->itemUrl),
-      //$fields,
       array(),
       $this->sourceListOptions
     );
@@ -38,7 +33,6 @@ class DatajsonHarvestMigration extends HarvestMigration {
  */
   public function setFieldMappings($version = '1.1') {
     parent::setFieldMappings();
-
     $this->addFieldMapping('og_group_ref', 'group_id');
 
     $this->addFieldMapping('field_tags', 'keyword');
@@ -64,8 +58,6 @@ class DatajsonHarvestMigration extends HarvestMigration {
     }
     else {
       // POD 1.1.
-      $this->addFieldMapping('field_additional_info',  'field_additional_info_key');
-      $this->addFieldMapping('field_additional_info:second', 'field_additional_info_value');
       $this->addFieldMapping('field_related_content', 'references');
     }
     if (module_exists('open_data_federal_extras')) {
