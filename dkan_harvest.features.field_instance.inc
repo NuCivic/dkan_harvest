@@ -10,6 +10,53 @@
 function dkan_harvest_field_default_field_instances() {
   $field_instances = array();
 
+  // Exported field_instance: 'node-dataset-field_harvest_source_ref'.
+  $field_instances['node-dataset-field_harvest_source_ref'] = array(
+    'bundle' => 'dataset',
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'hidden',
+        'module' => 'dkan_harvest',
+        'settings' => array(),
+        'type' => 'harvest_info_formatter',
+        'weight' => 20,
+      ),
+      'search_result' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'node',
+    'field_name' => 'field_harvest_source_ref',
+    'label' => 'Harvest Source',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'entityreference',
+      'settings' => array(
+        'match_operator' => 'CONTAINS',
+        'path' => '',
+        'size' => 60,
+      ),
+      'type' => 'entityreference_autocomplete',
+      'weight' => 24,
+    ),
+  );
+
   // Exported field_instance: 'node-harvest_source-field_dkan_harveset_type'.
   $field_instances['node-harvest_source-field_dkan_harveset_type'] = array(
     'bundle' => 'harvest_source',
@@ -567,6 +614,7 @@ function dkan_harvest_field_default_field_instances() {
   t('Defaults');
   t('Excludes');
   t('Filters');
+  t('Harvest Source');
   t('Machine Name');
   t('Notes');
   t('Overrides');
