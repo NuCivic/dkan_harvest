@@ -55,6 +55,36 @@ function dkan_harvest_page_event_log_access($node) {
 }
 
 /**
+ * Get the last event log from a harvest source node.
+ *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return a date.
+ */
+function dkan_harvest_get_last_event_log($node) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
+  $harvestSourceMigration = dkan_harvest_get_migration($harvestSource);
+  $logTable = $harvestSourceMigration->getMap()->getLogTable();
+
+  $query = db_select('migrate_log', 'log');
+
+  $query->join($logTable, 'harvest_source_log', 'log.mlid = harvest_source_log.mlid');
+
+  $query_result = $query
+    ->fields('log')
+    ->fields('harvest_source_log')
+    ->condition('machine_name', $harvestSource->getMigrationMachineName())
+    ->orderBy('log.starttime', 'DESC');
+
+  $query->addExpression('log.endtime - log.starttime', 'duration');
+
+  $result = $query->execute()->fetchObject();
+  $time = floor($result->starttime/1000);
+  return format_date($time);
+
+}
+
+/**
  * Display a node's moderation history.
  *
  * @param $node The harvest source node being acted upon.
@@ -645,6 +675,8 @@ function dkan_harvest_field_formatter_view($entity_type, $entity, $field, $insta
       $rows[] = array(t('<strong>Harvest Object Id</strong>'), $harvest_node->uuid);
       $rows[] = array(t('<strong>Harvest Source Id</strong>'), $sourceid);
       $rows[] = array(t('<strong>Harvest Source Title</strong>'), $harvest_node->title);
+      $rows[] = array(t('<strong>Harvest Source URI</strong>'), $harvest_node->field_dkan_harvest_source_uri[LANGUAGE_NONE][0]['value']);
+      $rows[] = array(t('<strong>Last Harvest Performed</strong>'), dkan_harvest_get_last_event_log($harvest_node));
       $caption = t('Harvested from !link', array('!link' => l($harvest_node->title, $harvest_node->field_dkan_harvest_source_uri[LANGUAGE_NONE][0]['value'])));
       $markup = theme('table', array('rows' => $rows, 'caption' => $caption));
     }
