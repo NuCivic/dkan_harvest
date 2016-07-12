@@ -639,7 +639,7 @@ function dkan_harvest_node_view($node, $view_mode, $langcode) {
       $link = '<div class"field">' . t('Source: !link', array('!link' => l($harvest_node->title, $harvest_node->field_dkan_harvest_source_uri[LANGUAGE_NONE][0]['value']))) . '</div>';
       $node->content['harvest'] = array(
         '#markup' => $link,
-        '#weight' => 0,
+        '#weight' => 1,
       );
     }
   }
