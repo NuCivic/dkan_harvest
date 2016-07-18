@@ -995,6 +995,13 @@ class HarvestMigration extends MigrateDKAN {
     return parent::addFieldMapping($destination_field, $source_field,
       $warn_on_override);
   }
+
+  /**
+   *
+   */
+  public function getLogID() {
+    return $this->logID;
+  }
 }
 
 

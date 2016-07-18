@@ -50,35 +50,144 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
   }
 
   /**
-   * We don't need to check the log table more than once per request.
+   * {@inheritdoc}
    *
-   * @var boolean
-   */
-  protected $ensuredTableLog;
-
-  /**
-   *
+   * Rewrite the parent constructor and add our specific bits that we couldn't
+   * add as an override.
    */
   public function __construct($machine_name, array $source_key,
     array $destination_key, $connection_key = 'default', $options = array()) {
-    parent::__construct($machine_name, $source_key, $destination_key, $connection_key, $options);
+    if (isset($options['track_last_imported'])) {
+      $this->trackLastImported = TRUE;
+    }
 
-    // Generate log table name. Limited to 63 characters.
+    $this->connection = Database::getConnection('default', $connection_key);
+
+    // Default generated table names, limited to 63 characters
     $prefixLength = strlen($this->connection->tablePrefix());
+    $this->mapTable = 'migrate_map_' . drupal_strtolower($machine_name);
+    $this->mapTable = drupal_substr($this->mapTable, 0, 63 - $prefixLength);
+    $this->messageTable = 'migrate_message_' . drupal_strtolower($machine_name);
+    $this->messageTable = drupal_substr($this->messageTable, 0, 63 - $prefixLength);
     $this->logTable = 'migrate_log_' . drupal_strtolower($machine_name);
     $this->logTable = drupal_substr($this->logTable, 0, 63 - $prefixLength);
 
-    $this->ensureTableLog();
+    $this->sourceKey = $source_key;
+    $this->destinationKey = $destination_key;
+
+    // Build the source and destination key maps
+    $this->sourceKeyMap = array();
+    $count = 1;
+    foreach ($source_key as $field => $schema) {
+      $this->sourceKeyMap[$field] = 'sourceid' . $count++;
+    }
+    $this->destinationKeyMap = array();
+    $count = 1;
+    foreach ($destination_key as $field => $schema) {
+      $this->destinationKeyMap[$field] = 'destid' . $count++;
+    }
+    $this->ensureTables();
+
   }
 
- /**
-  * Create the log table if they don't already exist.
-  *
-  * {@see self::ensureTables()}
-  */
-  protected function ensureTableLog() {
-    if (!$this->ensuredTableLog) {
-      if (!$this->connection->schema()->tableExists($this->logTable)) {
+  /**
+   * {@inheritdoc}
+   */
+  protected function ensureTables() {
+    if (!$this->ensured) {
+      if (!$this->connection->schema()->tableExists($this->mapTable)) {
+        // Generate appropriate schema info for the map and message tables,
+        // and map from the source field names to the map/msg field names
+        $count = 1;
+        $source_key_schema = array();
+        $pks = array();
+        foreach ($this->sourceKey as $field_schema) {
+          $mapkey = 'sourceid' . $count++;
+          $source_key_schema[$mapkey] = $field_schema;
+          $pks[] = $mapkey;
+        }
+
+        $fields = $source_key_schema;
+
+        // Add destination keys to map table
+        // TODO: How do we discover the destination schema?
+        $count = 1;
+        foreach ($this->destinationKey as $field_schema) {
+          // Allow dest key fields to be NULL (for IGNORED/FAILED cases)
+          $field_schema['not null'] = FALSE;
+          $mapkey = 'destid' . $count++;
+          $fields[$mapkey] = $field_schema;
+        }
+        $fields['needs_update'] = array(
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => MigrateMap::STATUS_IMPORTED,
+          'description' => 'Indicates current status of the source row',
+        );
+        $fields['rollback_action'] = array(
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => MigrateMap::ROLLBACK_DELETE,
+          'description' => 'Flag indicating what to do for this item on rollback',
+        );
+        $fields['last_imported'] = array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'UNIX timestamp of the last time this row was imported',
+        );
+        $fields['hash'] = array(
+          'type' => 'varchar',
+          'length' => '32',
+          'not null' => FALSE,
+          'description' => 'Hash of source row data, for detecting changes',
+        );
+        $schema = array(
+          'description' => t('Mappings from source key to destination key'),
+          'fields' => $fields,
+          'primary key' => $pks,
+        );
+        $this->connection->schema()->createTable($this->mapTable, $schema);
+
+        // Now for the message table
+        $fields = array();
+        $fields['msgid'] = array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        );
+        $fields += $source_key_schema;
+
+        $fields['mlid'] = array(
+          'type' => 'int',
+          'size' => 'big',
+          'unsigned' => TRUE,
+          'description' => 'For key for migrate_log table',
+        );
+        $fields['level'] = array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 1,
+        );
+        $fields['message'] = array(
+          'type' => 'text',
+          'size' => 'medium',
+          'not null' => TRUE,
+        );
+        $schema = array(
+          'description' => t('Messages generated during a migration process'),
+          'fields' => $fields,
+          'primary key' => array('msgid'),
+          'indexes' => array('sourcekey' => $pks),
+        );
+        $this->connection->schema()->createTable($this->messageTable, $schema);
+
         // Generate appropriate schema info for the log table, and
         // map from the migrationid  field name to the log field name.
         $fields = array();
@@ -141,9 +250,31 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
 
         $this->connection->schema()->createTable($this->logTable, $schema);
       }
+      else {
+        // Add any missing columns to the map table
+        if (!$this->connection->schema()->fieldExists($this->mapTable,
+                                                      'rollback_action')) {
+          $this->connection->schema()->addField($this->mapTable,
+                                                'rollback_action', array(
+            'type' => 'int',
+            'size' => 'tiny',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+            'description' => 'Flag indicating what to do for this item on rollback',
+          ));
+        }
+        if (!$this->connection->schema()->fieldExists($this->mapTable, 'hash')) {
+          $this->connection->schema()->addField($this->mapTable, 'hash', array(
+            'type' => 'varchar',
+            'length' => '32',
+            'not null' => FALSE,
+            'description' => 'Hash of source row data, for detecting changes',
+          ));
+        }
+      }
+      $this->ensured = TRUE;
     }
-
-    $this->ensuredTableLog = TRUE;
   }
 
   /**
@@ -203,5 +334,34 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
     $return = $result->fetchAllAssoc('sourceid1');
     migrate_instrument_stop('lookupMapTable');
     return $return;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function saveMessage($source_key, $message, $level = Migration::MESSAGE_ERROR) {
+    $migration = Migration::currentMigration();
+    $fields['mlid'] = $migration->getLogID();
+    // Source IDs as arguments
+    $count = 1;
+    if (is_array($source_key)) {
+      foreach ($source_key as $key_value) {
+        $fields['sourceid' . $count++] = $key_value;
+        // If any key value is empty, we can't save - print out and abort
+        if (empty($key_value)) {
+          print($message);
+          return;
+        }
+      }
+      $fields['level'] = $level;
+      $fields['message'] = $message;
+      $this->connection->insert($this->messageTable)
+        ->fields($fields)
+        ->execute();
+    }
+    else {
+      // TODO: What else can we do?
+      Migration::displayMessage($message);
+    }
   }
 }
