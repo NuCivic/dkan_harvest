@@ -244,6 +244,32 @@ class HarvestSource {
   }
 
   /**
+   * Query the migrate_log table to get the time the harvest source
+   * migration run.
+   *
+   * @param string @mlid Harvest Source Migration event ID.
+   *
+   * @return Timestamp of the last Harvest Migration run. Or NULL if source not
+   * found or not run yet.
+   */
+  public static function getMigrationTimestampFromMlid($mlid) {
+   // Get the time the migration was run by mlid.
+   $result = db_query("SELECT MAX(starttime) FROM {migrate_log} WHERE mlid =
+     :mlid ORDER BY starttime ASC limit 1;", array(':mlid' =>
+     $mlid));
+
+   $result_array = $result->fetchAssoc();
+
+   if (!empty($result_array)) {
+     $harvest_migrate_date = array_pop($result_array);
+     // Migrate saves the timestamps with microseconds. So we drop the extra
+     // info and get only the usual timestamp.
+     $harvest_migrate_date = floor($harvest_migrate_date/1000);
+     return $harvest_migrate_date;
+    }
+  }
+
+  /**
    * Query the migration map table to get the last time the harvest source
    * migration run.
    *
