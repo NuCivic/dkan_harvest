@@ -4,7 +4,7 @@ set -e
 DKAN_MODULE="dkan_harvest"
 
 # DKAN branch to use
-DKAN_BRANCH="dev-dkan-ahoy-smarter"
+DKAN_BRANCH="harvest_dkan_integration"
 
 COMPOSER_PATH=".composer/vendor/bin"
 
