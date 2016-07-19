@@ -27,8 +27,18 @@ function dkan_harvest_menu() {
     'title' => 'Event Log',
     'page callback' => 'dkan_harvest_page_event_log',
     'page arguments' => array(1),
-    'access callback' => 'dkan_harvest_page_event_log_access',
+    'access callback' => 'dkan_harvest_page_additional_access',
     'access arguments' => array(1),
+    'file' => 'dkan_harvest.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['node/%node/harvest-preview'] = array(
+    'title' => 'Preview',
+    'page callback' => 'dkan_harvest_page_preview',
+    'page arguments' => array(1),
+    'access callback' => 'dkan_harvest_page_additional_access',
+    'access arguments' => array(1),
+    'file' => 'dkan_harvest.pages.inc',
     'type' => MENU_LOCAL_TASK,
   );
 
@@ -36,14 +46,14 @@ function dkan_harvest_menu() {
 }
 
 /**
- * Determines whether the current user may access the harvest source event log
+ * Determines whether the current user may access the harvest source event log/Preview
  * page.
  *
  * @param $node The harvest source node being acted upon.
  *
  * @return TRUE if access is granted. Otherwise FALSE.
  */
-function dkan_harvest_page_event_log_access($node) {
+function dkan_harvest_page_additional_access($node) {
   // Only available for harves source type nodes.
   if ($node->type != 'harvest_source') {
     return FALSE;
@@ -82,94 +92,6 @@ function dkan_harvest_get_last_event_log($node) {
   $time = floor($result->starttime/1000);
   return format_date($time);
 
-}
-
-/**
- * Display a node's moderation history.
- *
- * @param $node The harvest source node being acted upon.
- *
- * @return A themed table of data and links for harvest source node events.
- */
-function dkan_harvest_page_event_log($node) {
-  // Set the table header.
-  $header = array(
-    'mlid' => array('data' => t('Event ID'), 'field' => 'mlid'),
-    'starttime' => array('data' => t('Date'), 'field' => 'starttime', 'sort' => 'desc'),
-    'duration' => array('data' => t('Duration'), 'field' => 'duration'),
-    'created' => array('data' => t('Created'), 'field' => 'created'),
-    'updated' => array('data' => t('Updated'), 'field' => 'updated'),
-    'failed' => array('data' => t('Failed'), 'field' => 'failed'),
-    'orphaned' => array('data' => t('Orphaned'), 'field' => 'orphaned'),
-    'unchanged' => array('data' =>t('Unchanged'), 'field' => 'unchanged'),
-  );
-
-  $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
-  $harvestSourceMigration = dkan_harvest_get_migration($harvestSource);
-  $logTable = $harvestSourceMigration->getMap()->getLogTable();
-
-  $query = db_select('migrate_log', 'log');
-
-  $query->join($logTable, 'harvest_source_log', 'log.mlid = harvest_source_log.mlid');
-
-  $query_result = $query
-    ->fields('log')
-    ->fields('harvest_source_log')
-    ->condition('machine_name', $harvestSource->getMigrationMachineName())
-    // Add table sort extender.
-    ->extend('TableSort')
-    // Add order by headers.
-    ->orderByHeader($header);
-
-  $query->addExpression('log.endtime - log.starttime', 'duration');
-
-  $query_result = $query->execute();
-
-  $results = $query_result->fetchAllAssoc('mlid');
-
-  // Convert from microsecnod to seconds.
-  function timefloor ($microtime) {
-    return floor($microtime/1000);
-  }
-
-  // Build the table rows.
-  $rows = array();
-  foreach ($results as $result) {
-    $row = array(
-      'data' => array(
-        'mlid' => $result->mlid,
-        'date' => format_date(timefloor($result->starttime)),
-        'duration' => format_interval(timefloor($result->duration), 2),
-        'created' => $result->created,
-        'updated' => $result->updated,
-        'failed' => $result->failed,
-        'orphaned' => $result->orphaned,
-        'unchanged' => $result->unchanged,
-      ),
-      'class' => array('harvest-event'),
-    );
-
-    $rows[] = $row;
-  }
-
-
-  // Return properly styled output.
-  $build['pager_table'] = array(
-    '#attached' => array(
-      'css' => array(),
-    ),
-    '#theme' => 'table',
-    '#attributes' => array(
-       'class' => array('harvest-event-log'),
-    ),
-    '#header' => $header,
-    '#rows' => $rows,
-  );
-
-  // Attach the pager theme.
-  $build['pager_pager'] = array('#theme' => 'pager');
-
-  return $build;
 }
 
 /**
