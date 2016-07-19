@@ -12,13 +12,13 @@ function dkan_harvest_datajson_harvest_source_types() {
   return array(
     'datajson_v1_1_json' => array(
       'machine_name' => 'datajson_v1_1_json',
-      'name' => 'Project Open Data v1.1 JSON',
+      'label' => 'Project Open Data v1.1 JSON',
       'cache callback' => 'dkan_harvest_datajson_cache',
       'migration class' => 'DatajsonHarvestMigration',
     ),
     'datajson_v1_1_xml' => array(
       'machine_name' => 'datajson_v1_1_xml',
-      'name' => 'Project Open Data v1.1 XML',
+      'label' => 'Project Open Data v1.1 XML',
       'cache callback' => 'dkan_harvest_datajson_cache',
       'migration class' => 'DatajsonHarvestMigration',
     ),
