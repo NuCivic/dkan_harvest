@@ -28,8 +28,13 @@ class views_handler_field_date_harvest_date extends views_handler_field_date {
       ));
 
     $result_array = $result->fetchAssoc();
+    watchdog('views_handler_field_orphan', 'NID2 = <pre>' . print_r($result_array, TRUE) . '</pre>');
+    return 'hello';
 
     if (!empty($result_array)) {
+    watchdog('views_handler_field_orphan', 'NID2 = <pre>' . print_r($result_array, TRUE) . '</pre>');
+    watchdog('views_handler_field_orphan', 'NID2 = <pre>' . print_r(HarvestSource::getMigrationTimestampFromMachineName($machine_name), TRUE) . '</pre>');
+
       $machine_name = array_pop($result_array);
       return HarvestSource::getMigrationTimestampFromMachineName($machine_name);
     }

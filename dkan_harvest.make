@@ -12,3 +12,6 @@ projects[dkan_migrate_base][subdir] = contrib
 
 projects[safeword][version] = 1.13
 projects[safeword][subdir] = contrib
+
+projects[better_exposed_filters] = 3.2
+projects[better_exposed_filters][subdir] = contrib
