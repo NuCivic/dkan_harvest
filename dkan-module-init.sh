@@ -15,7 +15,21 @@ if [[ "$PATH" != *"$COMPOSER_PATH"* ]]; then
   export PATH="$PATH:~/$COMPOSER_PATH"
 fi
 
-wget -q -O - https://raw.githubusercontent.com/NuCivic/dkan/dev-dkan-ahoy-smarter/dkan-init.sh | bash /dev/stdin $DKAN_MODULE $@ --skip-reinstall --branch=$DKAN_BRANCH
+wget -O /tmp/dkan-init.sh https://raw.githubusercontent.com/NuCivic/dkan/$DKAN_BRANCH/dkan-init.sh
+
+# Make sure the download was at least successful.
+if [ $? -ne 0 ] ; then
+  echo ""
+  echo "[Error] Failed to download the dkan-init.sh script from github dkan. Branch: $DKAN_BRANCH . Perhaps someone deleted the branch?"
+  echo ""
+  exit 1
+fi
+
+#Only stop on errors starting now..
+set -e
+
+# OK, run the script.
+bash /tmp/dkan-init.sh $DKAN_MODULE $@ --skip-reinstall --branch=$DKAN_BRANCH
 
 ahoy dkan module-link $DKAN_MODULE
 ahoy dkan module-make $DKAN_MODULE
