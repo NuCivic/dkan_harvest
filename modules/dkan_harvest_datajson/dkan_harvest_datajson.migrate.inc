@@ -146,6 +146,8 @@ class DatajsonHarvestMigration extends HarvestMigration {
    */
   public function prepareRow($row) {
     parent::prepareRow($row);
+
+    $row->resources = $this->prepareRowResources($row->distribution);
   }
 
   /**
@@ -153,5 +155,31 @@ class DatajsonHarvestMigration extends HarvestMigration {
    */
   public function prepare($dataset_prepare, $row) {
     parent::prepare($dataset_prepare, $row);
+  }
+
+  /**
+   * Prepare list of resources that need to be imported based on the row data.
+   *
+   * @param $resources_row_data Resources data present on row.
+   *
+   * @return An array with all resources data ready to be imported or empty if
+   * no resources where found.
+   */
+  public function prepareRowResources($resources_row_data) {
+    $resources = array();
+
+    foreach ($resources_row_data as $resource_row_data) {
+      $resource = $this->prepareResourceHelper($resource_row_data->downloadURL,
+        $resource_row_data->format,
+        $resource_row_data->title,
+        NULL,
+        $resource_row_data->description);
+
+      if ($resource) {
+        $resources[] = $resource;
+      }
+    }
+
+    return $resources;
   }
 }
