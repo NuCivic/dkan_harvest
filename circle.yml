@@ -1,53 +1,36 @@
-## DKAN Circle CI PHPUnit Only.
-## v0.1.0
-
-## Customize the test machine
 machine:
   timezone:
     America/New_York
   php:
     version: '5.5.11'
-
-  # Add some environment variables
   environment:
     DATABASE_URL: mysql://ubuntu:@127.0.0.1:3306/circle_test
+    COMPOSER_PATH: $HOME/.config/composer/vendor/bin
+    PATH: $COMPOSER_PATH:$PATH
 checkout:
   post:
     # Remove the extra composer stuff that circleci loads and that is causing conflicts with drush.
-    - composer install
     - rm -rf ~/.composer
 
-## Customize dependencies
 dependencies:
-
   cache_directories:
      #- "test/vendor"
      #- "~/.composer"
      #- "~/.drush"
      #- "~/backups"
      #- "test/sites/default"
-     - webroot
-     - backups
-     - vendor
-  pre:
-    - echo "memory_limit = 256M" > ~/.phpenv/versions/5.5.11/etc/conf.d/memory.ini
   override:
     - mkdir $CIRCLE_ARTIFACTS/junit
-    - . ./dkan-module-init-phpunit-only.sh
-
-  # we automatically cache and restore many dependencies between
-  # builds. If you need to, you can add custom paths to cache:
-  #cache_directories:
-  #  - "custom_1"   # relative to the build directory
-  #  - "~/custom_2" # relative to the user's home directory
-
-## Customize test commands
+    - 'bash dkan-module-init.sh --deps --build=$DATABASE_URL'
+    - cd dkan_harvest && composer install && cd ..
+    - ahoy drush -y en dkan_harvest_test
+    - cp dkan_harvest/test/behat/features/*.feature dkan/test/features/
+    - 'ahoy drush --yes runserver :8888':
+        background: true
+    - wget http://selenium-release.storage.googleapis.com/2.48/selenium-server-standalone-2.48.2.jar
+    - java -jar selenium-server-standalone-2.48.2.jar -quiet -p 4444 -log shut_up_selenium :
+        background: true
 test:
   override:
-  # Fix for behat bug not recognizing symlinked feature files.
-  #  - bash dkan/test/circle-behat.sh  docroot/profiles/dkan/modules/dkan/dkan_workflow/test/features docroot/profiles/dkan/test/features:
-    - cd webroot/sites/all/modules/dkan_harvest/test/phpunit; ../../bin/phpunit:
-        parallel: true
-  post:
-    - sudo rm -rf webroot/sites/default/settings.php
-    - rm -rf webroot/sites/all/modules/dkan_harvest
+    - dkan_harvest/bin/phpunit --configuration dkan_harvest/test/phpunit
+    - bash dkan/test/circle-behat.sh docroot/profiles/dkan/test/features
