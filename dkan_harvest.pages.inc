@@ -140,8 +140,6 @@ function dkan_harvest_page_error_log($node) {
 
   $results = $query_result->fetchAllAssoc('msgid');
 
-  dpm($harvestSourceMigrationMap->getMessageTable());
-  dpm($results);
   // Build the table rows.
   $collapsible_items = array();
   foreach ($results as $result) {
@@ -169,8 +167,6 @@ function dkan_harvest_page_error_log($node) {
     $collapsible_items[$result->mlid][] = $row;
   }
 
-  dpm($collapsible_items);
-
   $build = array();
   $collapsible_item_offset = 0;
   foreach ($collapsible_items as $collapsible_item_mlid => $collapsible_item) {
@@ -180,7 +176,10 @@ function dkan_harvest_page_error_log($node) {
     ),
     '#theme' => 'table',
     '#attributes' => array(
-      'class' => array('harvest-error-log'),
+      'class' => array(
+        'harvest-error-log-table',
+        'harvest-error-log-table-' . $collapsible_item_mlid,
+      ),
     ),
     '#header' => $collapsible_inner_header,
     '#rows' => $collapsible_item,
@@ -190,20 +189,25 @@ function dkan_harvest_page_error_log($node) {
     $handle = t('@errors_count Error(s) encountered on @date',
       array(
         '@errors_count' => count($collapsible_item),
-'@date' => format_date(HarvestSource::getMigrationTimestampFromMlid($collapsible_item_mlid)),
+        '@date' => format_date(HarvestSource::getMigrationTimestampFromMlid($collapsible_item_mlid)),
       ));
+
     $build['collapsible_row_' . $collapsible_item_mlid] = array(
       '#attached' => array(
-        'css' => array(),
-    ),
-    '#theme' => 'ctools_collapsible',
-    '#attributes' => array(
-      'class' => array('harvest-error-log-collapse'),
-    ),
-    '#handle' => $handle,
-    '#content' => drupal_render($collapsible_inner_table),
-    '#collapsed' => $collapsible_item_offset > 0 ? TRUE : FALSE,
-  );
+        'css' => array(
+          drupal_get_path('module', 'dkan_harvest') . '/css/dkan_harvest_pages_error_log_collapsible.css'
+        ),
+      ),
+      '#theme' => 'ctools_collapsible',
+      '#attributes' => array(
+        'class' => array(
+          'harvest-error-log-collapse'
+        ),
+      ),
+      '#handle' => $handle,
+      '#content' => drupal_render($collapsible_inner_table),
+      '#collapsed' => $collapsible_item_offset > 0 ? TRUE : FALSE,
+    );
 
     $collapsible_item_offset++;
   }
