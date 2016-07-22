@@ -42,7 +42,6 @@ class DatajsonHarvestMigration extends HarvestMigration {
     $this->addFieldMapping('changed', 'modified');
     $this->addFieldMapping('created', 'issued');
     $this->addFieldMapping('field_public_access_level', 'accessLevel');
-    $this->addFieldMapping('field_resources', 'resources');
     $this->addFieldMapping('field_contact_name', 'contactPointName');
     $this->addFieldMapping('field_contact_email', 'mbox');
     $this->addFieldMapping('uuid', 'identifier');
