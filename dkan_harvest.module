@@ -571,3 +571,33 @@ function dkan_harvest_node_view($node, $view_mode, $langcode) {
   }
 }
 
+/**
+ * Implements hook_form_alter().
+ */
+function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'harvest_source_node_form') {
+
+    $language = $form['language']['#value'];
+
+    // Move 'field_dkan_harvest_filters' description below field label.
+    $field_desc = $form['field_dkan_harvest_filters'][$language]['#description'];
+    $form['field_dkan_harvest_filters'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
+    $form['field_dkan_harvest_filters'][$language]['#description'] = '';
+
+    // Move 'field_dkan_harvest_excludes' description below field label.
+    $field_desc = $form['field_dkan_harvest_excludes'][$language]['#description'];
+    $form['field_dkan_harvest_excludes'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
+    $form['field_dkan_harvest_excludes'][$language]['#description'] = '';
+
+    // Move 'field_dkan_harvest_overrides' description below field label.
+    $field_desc = $form['field_dkan_harvest_overrides'][$language]['#description'];
+    $form['field_dkan_harvest_overrides'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
+    $form['field_dkan_harvest_overrides'][$language]['#description'] = '';
+
+    // Move 'field_dkan_harvest_defaults' description below field label.
+    $field_desc = $form['field_dkan_harvest_defaults'][$language]['#description'];
+    $form['field_dkan_harvest_defaults'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
+    $form['field_dkan_harvest_defaults'][$language]['#description'] = '';
+  }
+}
+
