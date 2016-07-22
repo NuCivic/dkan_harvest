@@ -238,8 +238,16 @@ class HarvestMigration extends MigrateDKAN {
    * @param stdClass $row Migrate row.
    */
   private function prepareResources(&$dataset_prepare, stdClass &$row) {
-    // Delete exsting resources if updating an existing dataset.
-    if (isset($row->migrate_map_destid1)) {
+
+    $is_update = isset($row->migrate_map_destid1);
+
+    // If the dataset is being updated but the data did not change then don't process resources.
+    if ($is_update && ($dataset_prepare->changed === $row->modified)) {
+      return;
+    }
+
+    // If the dataset is being updated then remove all resources first.
+    if ($is_update) {
       $dataset_old_emw = entity_metadata_wrapper('node', $row->migrate_map_destid1);
       $field_resources_ids = array();
       foreach ($dataset_old_emw->field_resources as $delta => $resource_emw) {
@@ -249,7 +257,7 @@ class HarvestMigration extends MigrateDKAN {
     }
 
     if (isset($row->resources) && is_array($row->resources) && !empty($row->resources)) {
-      // Delete existing resources in case the dataset is updated.
+      // Create all resources and assign them to the dataset.
       $field_resources_value = array();
       foreach ($row->resources as $resource_row) {
         $resource_node = $this->createResourceNode($resource_row);
