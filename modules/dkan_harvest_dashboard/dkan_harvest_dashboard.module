@@ -5,3 +5,49 @@
  */
 
 include_once 'dkan_harvest_dashboard.features.inc';
+
+
+/**
+ * Implements hook_menu().
+ */
+function dkan_harvest_dashboard_menu() {
+  $items = array();
+  $items['admin/dkan/harvest/dashboard'] = array(
+    'title' => 'DKAN Harvest Dashboard',
+    'access callback' => TRUE,
+    'access arguments' => array(),
+    'page callback' => 'dkan_harvest_dashboard_sources_page',
+  );
+  
+  $items['admin/dkan/harvest/dashboard/sources'] = array(
+    'title' => 'Sources',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'access arguments' => array(),
+    'weight' => -10,
+    'page callback' => 'dkan_harvest_dashboard_sources_page',
+  );
+
+  $items['admin/dkan/harvest/dashboard/datasets'] = array(
+    'title' => 'Datasets',
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => TRUE,
+    'access arguments' => array(),
+    'weight' => 1,
+    'page callback' => 'dkan_harvest_dashboard_datasets_page',
+  );  
+  return $items;
+}
+
+/**
+ * Dataset list page callback
+ */
+function dkan_harvest_dashboard_sources_page() {
+  return views_embed_view('dkan_harvest_dashboard', 'harvest_sources');
+}
+
+/**
+ * Sources list page callback
+ */
+function dkan_harvest_dashboard_datasets_page() {
+  return views_embed_view('dkan_harvest_datasets', 'harvest_datasets');
+}

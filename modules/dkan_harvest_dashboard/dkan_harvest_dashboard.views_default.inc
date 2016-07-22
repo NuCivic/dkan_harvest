@@ -145,24 +145,11 @@ function dkan_harvest_dashboard_views_default_views() {
   );
 
   /* Display: Harvest Dashboard */
-  $handler = $view->new_display('page', 'Harvest Dashboard', 'page');
-  $handler->display->display_options['defaults']['access'] = FALSE;
-  $handler->display->display_options['access']['type'] = 'role';
-  $handler->display->display_options['access']['role'] = array(
-    30037204 => '30037204',
-    27274083 => '27274083',
-  );
-  $handler->display->display_options['path'] = 'admin/dkan/harvest/dashboard';
-  $handler->display->display_options['menu']['type'] = 'normal';
-  $handler->display->display_options['menu']['title'] = 'DKAN Harvest Dashboard';
-  $handler->display->display_options['menu']['weight'] = '0';
-  $handler->display->display_options['menu']['name'] = 'management';
-  $handler->display->display_options['menu']['context'] = 0;
-  $handler->display->display_options['menu']['context_only_inline'] = 0;
+  $handler = $view->new_display('panel_pane', 'Harvest Dashboard', 'harvest_sources');
   $export['dkan_harvest_dashboard'] = $view;
 
   $view = new view();
-  $view->name = 'dkan_harvested_datasets';
+  $view->name = 'dkan_harvest_datasets';
   $view->description = '';
   $view->tag = 'default';
   $view->base_table = 'node';
@@ -336,6 +323,57 @@ function dkan_harvest_dashboard_views_default_views() {
       'any_label' => NULL,
       'filter_rewrite_values' => NULL,
     ),
+    'field_orphan_value' => array(
+      'bef_format' => 'default',
+      'more_options' => array(
+        'bef_select_all_none' => FALSE,
+        'bef_collapsible' => 0,
+        'is_secondary' => 0,
+        'any_label' => '',
+        'bef_filter_description' => '',
+        'tokens' => array(
+          'available' => array(
+            0 => 'global_types',
+            'secondary_label' => NULL,
+            'collapsible_label' => NULL,
+            'combine_rewrite' => NULL,
+            'reset_label' => NULL,
+            'bef_filter_description' => NULL,
+            'any_label' => NULL,
+            'filter_rewrite_values' => NULL,
+          ),
+          'secondary_label' => NULL,
+          'collapsible_label' => NULL,
+          'combine_rewrite' => NULL,
+          'reset_label' => NULL,
+          'bef_filter_description' => NULL,
+          'any_label' => NULL,
+          'filter_rewrite_values' => NULL,
+        ),
+        'rewrite' => array(
+          'filter_rewrite_values' => 'On|Yes
+  Off|No',
+          'secondary_label' => NULL,
+          'collapsible_label' => NULL,
+          'combine_rewrite' => NULL,
+          'reset_label' => NULL,
+          'bef_filter_description' => NULL,
+          'any_label' => NULL,
+        ),
+        'secondary_label' => NULL,
+        'collapsible_label' => NULL,
+        'combine_rewrite' => NULL,
+        'reset_label' => NULL,
+        'filter_rewrite_values' => NULL,
+      ),
+      'secondary_label' => NULL,
+      'collapsible_label' => NULL,
+      'combine_rewrite' => NULL,
+      'reset_label' => NULL,
+      'bef_filter_description' => NULL,
+      'any_label' => NULL,
+      'filter_rewrite_values' => NULL,
+    ),
     'secondary_label' => NULL,
     'collapsible_label' => NULL,
     'combine_rewrite' => NULL,
@@ -484,23 +522,16 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['fields']['changed']['date_format'] = 'custom';
   $handler->display->display_options['fields']['changed']['custom_date_format'] = 'Y-m-d';
   $handler->display->display_options['fields']['changed']['second_date_format'] = 'search_api_facetapi_YEAR';
-  /* Field: Dkan Harvest: Harvest Orphan */
-  $handler->display->display_options['fields']['dkan_harvest_orphan']['id'] = 'dkan_harvest_orphan';
-  $handler->display->display_options['fields']['dkan_harvest_orphan']['table'] = 'dkan_harvested_datasets';
-  $handler->display->display_options['fields']['dkan_harvest_orphan']['field'] = 'dkan_harvest_orphan';
-  $handler->display->display_options['fields']['dkan_harvest_orphan']['label'] = 'Orphan';
+  /* Field: Content: Orphan */
+  $handler->display->display_options['fields']['field_orphan']['id'] = 'field_orphan';
+  $handler->display->display_options['fields']['field_orphan']['table'] = 'field_data_field_orphan';
+  $handler->display->display_options['fields']['field_orphan']['field'] = 'field_orphan';
+  $handler->display->display_options['fields']['field_orphan']['type'] = 'list_key';
   /* Sort criterion: Content: Post date */
   $handler->display->display_options['sorts']['created']['id'] = 'created';
   $handler->display->display_options['sorts']['created']['table'] = 'node';
   $handler->display->display_options['sorts']['created']['field'] = 'created';
   $handler->display->display_options['sorts']['created']['order'] = 'DESC';
-  /* Filter criterion: Content: Published */
-  $handler->display->display_options['filters']['status']['id'] = 'status';
-  $handler->display->display_options['filters']['status']['table'] = 'node';
-  $handler->display->display_options['filters']['status']['field'] = 'status';
-  $handler->display->display_options['filters']['status']['value'] = 1;
-  $handler->display->display_options['filters']['status']['group'] = 1;
-  $handler->display->display_options['filters']['status']['expose']['operator'] = FALSE;
   /* Filter criterion: Content: Type */
   $handler->display->display_options['filters']['type']['id'] = 'type';
   $handler->display->display_options['filters']['type']['table'] = 'node';
@@ -576,18 +607,33 @@ function dkan_harvest_dashboard_views_default_views() {
     4 => 0,
     6 => 0,
   );
-  /* Filter criterion: Broken/missing handler */
-  $handler->display->display_options['filters']['dkan_harvest_orphan_filter']['id'] = 'dkan_harvest_orphan_filter';
-  $handler->display->display_options['filters']['dkan_harvest_orphan_filter']['table'] = 'dkan_harvested_datasets';
-  $handler->display->display_options['filters']['dkan_harvest_orphan_filter']['field'] = 'dkan_harvest_orphan_filter';
+  /* Filter criterion: Content: Orphan (field_orphan) */
+  $handler->display->display_options['filters']['field_orphan_value']['id'] = 'field_orphan_value';
+  $handler->display->display_options['filters']['field_orphan_value']['table'] = 'field_data_field_orphan';
+  $handler->display->display_options['filters']['field_orphan_value']['field'] = 'field_orphan_value';
+  $handler->display->display_options['filters']['field_orphan_value']['value'] = array(
+    'all' => 'all',
+    0 => '0',
+    1 => '1',
+  );
+  $handler->display->display_options['filters']['field_orphan_value']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['operator_id'] = 'field_orphan_value_op';
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['label'] = 'Orphan (field_orphan)';
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['operator'] = 'field_orphan_value_op';
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['identifier'] = 'field_orphan_value';
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['remember_roles'] = array(
+    2 => '2',
+    3 => 0,
+    1 => 0,
+    5 => 0,
+    4 => 0,
+    6 => 0,
+  );
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['reduce'] = TRUE;
 
-  /* Display: Content pane */
-  $handler = $view->new_display('panel_pane', 'Content pane', 'panel_pane_1');
-
-  /* Display: Page */
-  $handler = $view->new_display('page', 'Page', 'page_1');
-  $handler->display->display_options['path'] = 'admin/dkan/harvest/datasets';
-  $export['dkan_harvested_datasets'] = $view;
+  /* Display: Harvested Datasets */
+  $handler = $view->new_display('panel_pane', 'Harvested Datasets', 'harvest_datasets');
+  $export['dkan_harvest_datasets'] = $view;
 
   return $export;
 }

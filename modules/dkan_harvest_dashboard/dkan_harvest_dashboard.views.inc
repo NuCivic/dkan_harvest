@@ -41,14 +41,14 @@ function dkan_harvest_dashboard_views_data() {
   );
 
   // Orphaned datasets pseudo-field.
-  $data['dkan_harvested_datasets']['table']['group'] = t('Dkan Harvest');
+  $data['dkan_harvest_datasets']['table']['group'] = t('Dkan Harvest');
 
-  $data['dkan_harvested_datasets']['table']['join'] = array(
+  $data['dkan_harvest_datasets']['table']['join'] = array(
     // #global is a special flag which let's a table appear all the time.
     '#global' => array(),
   );
   
-  $data['dkan_harvested_datasets']['dkan_harvest_orphan'] = array(
+  $data['dkan_harvest_datasets']['dkan_harvest_orphan'] = array(
     'title' => t('Harvest Orphan'),
     'help' => t('Datasets that no longer exist in a Harvest Source.'),
     'field' => array(
@@ -58,7 +58,7 @@ function dkan_harvest_dashboard_views_data() {
   );
 
   // Orphan exposed views filter.
-  $data['dkan_harvested_datasets']['dkan_harvest_orphan_filter'] = array(
+  $data['dkan_harvest_datasets']['dkan_harvest_orphan_filter'] = array(
     'group' => t('Dkan Harvest'),
     'real field' => 'dkan_harvest_orphan',
     'title' => t('Orphan filter'),
@@ -68,7 +68,7 @@ function dkan_harvest_dashboard_views_data() {
     ),
   );
   // Adds our field in the "Filters" section of Views
-  $data['dkan_harvested_datasets']['orphan']['filter'] = array(
+  $data['dkan_harvest_datasets']['orphan']['filter'] = array(
     'handler' => 'views_handler_filter_numeric',
   );
 

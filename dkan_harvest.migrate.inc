@@ -595,6 +595,7 @@ class HarvestMigration extends MigrateDKAN {
         // Unpublish attached resources.
         if (isset($dataset_emw->field_resources)) {
           foreach ($dataset_emw->field_resources->getIterator() as $delta => $resource_emw) {
+            $resource_emw->field_orphan->set(1);
             $resource_emw->status->set(0);
             $resource_emw->save();
             $related_count++;
@@ -607,7 +608,7 @@ class HarvestMigration extends MigrateDKAN {
             $dataset_emw->field_metadata_sources->status->set(0);
           }
         }
-
+        $dataset_emw->field_orphan->set(1);
         // Unpublish the dataset.
         $dataset_emw->status->set(0);
         $dataset_emw->save();
