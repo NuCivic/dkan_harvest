@@ -211,8 +211,6 @@ class HarvestMigration extends MigrateDKAN {
       $dataset_prepare->migration_changed_date = $row->modified;
     }
 
-    $this->prepareResources($dataset_prepare, $row);
-
     // This modules lives in NuCivic/dkan_dataset_metadata_source but seems to
     // me that only USDA is using it right now.
     if (module_exists('dkan_dataset_metadata_source')) {
@@ -224,8 +222,14 @@ class HarvestMigration extends MigrateDKAN {
    * {@inheritdoc}
    */
   public function complete($dataset, $row) {
-    // Added empty callback. This is intended to have the subclass
-    // implementation call parent::complete() without running into php error.
+
+    // Create resources after the dataset was created. If the creation of the dataset
+    // fails resources should not be created. Also, we need the dataset to be
+    // created first so the sync of groups work properly.
+    $this->createResources($dataset, $row);
+
+    // Save dataset.
+    node_save($dataset);
   }
 
   /**
@@ -237,19 +241,20 @@ class HarvestMigration extends MigrateDKAN {
    * @param $dataset_prepare dataset entity to prepare.
    * @param stdClass $row Migrate row.
    */
-  private function prepareResources(&$dataset_prepare, stdClass &$row) {
-    // Delete exsting resources if updating an existing dataset.
-    if (isset($row->migrate_map_destid1)) {
-      $dataset_old_emw = entity_metadata_wrapper('node', $row->migrate_map_destid1);
+  private function createResources(&$dataset, stdClass &$row) {
+      // Delete all resources from dataset if any.
+      // All resources will get imported again.
       $field_resources_ids = array();
-      foreach ($dataset_old_emw->field_resources as $delta => $resource_emw) {
+      $dataset_old_emw = entity_metadata_wrapper('node', $dataset->nid);
+      foreach ($dataset_old_emw->field_resources->getIterator() as $delta => $resource_emw) {
         $field_resources_ids[] = $resource_emw->getIdentifier();
       }
-      entity_delete_multiple('node', $field_resources_ids);
-    }
+      if (!empty($field_resources_ids)) {
+        entity_delete_multiple('node', $field_resources_ids);
+      }
 
     if (isset($row->resources) && is_array($row->resources) && !empty($row->resources)) {
-      // Delete existing resources in case the dataset is updated.
+      // Create all resources and assign them to the dataset.
       $field_resources_value = array();
       foreach ($row->resources as $resource_row) {
         $resource_node = $this->createResourceNode($resource_row);
@@ -259,7 +264,7 @@ class HarvestMigration extends MigrateDKAN {
 
       if (!empty($field_resources_value)) {
         foreach ($field_resources_value as $key => $resource_nid) {
-          $dataset_prepare->field_resources[LANGUAGE_NONE][$key] = array(
+          $dataset->field_resources[LANGUAGE_NONE][$key] = array(
             'target_id' => $resource_nid,
           );
         }
@@ -720,7 +725,6 @@ class HarvestMigration extends MigrateDKAN {
     $this->addFieldMapping('field_contact_name', 'contact_name');
     $this->addFieldMapping('field_contact_email', 'contact_email');
     // $this->addFieldMapping('og_group_ref', 'group_ids');
-    $this->addFieldMapping('field_resources', 'resources');
     $this->addFieldMapping('field_related_content', 'related_content');
     $this->addFieldMapping('field_related_content:title', 'related_content:title');
     $this->addFieldMapping('field_related_content:url', 'related_content:url');
