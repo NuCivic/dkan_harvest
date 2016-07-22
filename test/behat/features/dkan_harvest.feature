@@ -106,7 +106,7 @@ Feature: Dkan Harvest
   And The "source_one" source is harvested
   And I am logged in as a "<role>"
   And I am on the "Source one" page
-  Then I should see 4 search results shown on the page in the 'harvest_source' search form
+  Then I should see 5 search results shown on the page in the 'harvest_source' search form
 
   Examples:
   | role               |
