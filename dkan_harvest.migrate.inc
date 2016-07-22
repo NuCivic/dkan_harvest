@@ -242,7 +242,6 @@ class HarvestMigration extends MigrateDKAN {
    * @param stdClass $row Migrate row.
    */
   private function createResources(&$dataset, stdClass &$row) {
-
       // Delete all resources from dataset if any.
       // All resources will get imported again.
       $field_resources_ids = array();
@@ -726,7 +725,6 @@ class HarvestMigration extends MigrateDKAN {
     $this->addFieldMapping('field_contact_name', 'contact_name');
     $this->addFieldMapping('field_contact_email', 'contact_email');
     // $this->addFieldMapping('og_group_ref', 'group_ids');
-    //$this->addFieldMapping('field_resources', 'resources');
     $this->addFieldMapping('field_related_content', 'related_content');
     $this->addFieldMapping('field_related_content:title', 'related_content:title');
     $this->addFieldMapping('field_related_content:url', 'related_content:url');

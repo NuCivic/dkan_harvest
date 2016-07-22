@@ -151,10 +151,10 @@ class DatajsonHarvestMigration extends HarvestMigration {
    *
    */
   public function prepare($dataset_prepare, $row) {
+    parent::prepare($dataset_prepare, $row);
+
     // Prepare resources data.
     $row->resources = $this->prepareRowResources($row->distribution);
-
-    parent::prepare($dataset_prepare, $row);
   }
 
   /**
