@@ -42,7 +42,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    * @depends testDatasetCount
    */
   public function testTitle($dataset) {
-    $this->assertEquals('Afghanistan Election Districts TEST', $dataset->title->value());
+    $this->assertEquals('TEST - State Workforce by Generation (2011-2015)', $dataset->title->value());
   }
 
   /**
@@ -50,10 +50,9 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    */
   public function testTags($dataset) {
     $tags_expected = array(
-      "country-afghanistan",
-      "election",
-      "politics",
-      "transparency",
+      "demographics",
+      "socioeconomic",
+      "workforce",
     );
 
     foreach ($dataset->field_tags->value() as $tag) {
@@ -73,7 +72,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    * @depends testDatasetCount
    */
   public function testIdentifer($dataset) {
-    $this->assertEquals("c2150dce-db96-4007-ba3f-fb4f3774902d", $dataset->uuid->value());
+    $this->assertEquals("95f8eac4-fd1f-4b35-8472-5c87e9425dfa", $dataset->uuid->value());
   }
 
   /**
@@ -81,15 +80,14 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    */
   public function testResources($dataset) {
     $expected_resources = array(
-      'NTN Site MD13 - Data' => 'http://nadp.isws.illinois.edu/data/sites/sitedetails.aspx?id=MD13&net=NTN',
-      'NTN Site MD13 - Photos' => 'http://nadp.isws.illinois.edu/data/sites/sitedetails.aspx?id=MD13&net=NTN',
-      'NTN Site MD13' => 'http://nadp.isws.illinois.edu/sites/ntn/ntntrends.html?siteID=MD13',
+      'TEST - Workforce By Generation (2011-2015)' => 'http://demo.getdkan.com/sites/default/files/GenChart_0_0.csv',
+      'TEST - Retirements (2011 - 2015)' => 'http://demo.getdkan.com/sites/default/files/retirements_0.csv',
+      'TEST - Retirements: Eligible vs. Actual' => 'http://demo.getdkan.com/sites/default/files/2015EligibleVsActual.csv',
     );
 
-    foreach ($dataset->field_resources->getIterator() as $delta => $resource) {
-      $this->assertNotEmpty($expected_resources[$resource->title->value()]);
-      $this->assertEquals($expected_resources[$resource->title->value()], $resource->field_link_api->url->value());
-    }
+    $dataset_resources = $this->getDatasetResources($dataset);
+
+    $this->assertEquals($expected_resources, $dataset_resources);
   }
 
   /**
@@ -640,5 +638,19 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $query = "SELECT COUNT(*) amount FROM {node} n";
     $result = db_query($query)->fetch();
     return $result->amount;
+  }
+
+  /**
+   * Returns an array with the list of resources associated with the dataset.
+   */
+  private function getDatasetResources($dataset) {
+    $resources = array();
+
+    foreach ($dataset->field_resources->getIterator() as $delta => $resource) {
+      $remote_file = $resource->field_link_remote_file->value();
+      $resources[$resource->title->value()] = $remote_file['uri'];
+    }
+
+    return $resources;
   }
 }
