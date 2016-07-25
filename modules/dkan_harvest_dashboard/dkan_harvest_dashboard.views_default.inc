@@ -159,6 +159,17 @@ function dkan_harvest_dashboard_views_default_views() {
   $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
 
   /* Display: Master */
+  $view = new view();
+  $view->name = 'dkan_harvest_datasets';
+  $view->description = '';
+  $view->tag = 'default';
+  $view->base_table = 'node';
+  $view->human_name = 'DKAN Harvested Datasets';
+  $view->core = 7;
+  $view->api_version = '3.0';
+  $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
+
+  /* Display: Master */
   $handler = $view->new_display('default', 'Master', 'default');
   $handler->display->display_options['title'] = 'Harvested Datasets';
   $handler->display->display_options['use_more_always'] = FALSE;
@@ -170,56 +181,6 @@ function dkan_harvest_dashboard_views_default_views() {
     'general' => array(
       'allow_secondary' => 0,
       'secondary_label' => 'Advanced options',
-      'collapsible_label' => NULL,
-      'combine_rewrite' => NULL,
-      'reset_label' => NULL,
-      'bef_filter_description' => NULL,
-      'any_label' => NULL,
-      'filter_rewrite_values' => NULL,
-    ),
-    'field_harvest_source_ref_target_id_entityreference_filter' => array(
-      'bef_format' => 'bef',
-      'more_options' => array(
-        'bef_select_all_none' => 0,
-        'bef_collapsible' => 0,
-        'is_secondary' => 0,
-        'any_label' => '',
-        'bef_filter_description' => '',
-        'tokens' => array(
-          'available' => array(
-            0 => 'global_types',
-            'secondary_label' => NULL,
-            'collapsible_label' => NULL,
-            'combine_rewrite' => NULL,
-            'reset_label' => NULL,
-            'bef_filter_description' => NULL,
-            'any_label' => NULL,
-            'filter_rewrite_values' => NULL,
-          ),
-          'secondary_label' => NULL,
-          'collapsible_label' => NULL,
-          'combine_rewrite' => NULL,
-          'reset_label' => NULL,
-          'bef_filter_description' => NULL,
-          'any_label' => NULL,
-          'filter_rewrite_values' => NULL,
-        ),
-        'rewrite' => array(
-          'filter_rewrite_values' => '',
-          'secondary_label' => NULL,
-          'collapsible_label' => NULL,
-          'combine_rewrite' => NULL,
-          'reset_label' => NULL,
-          'bef_filter_description' => NULL,
-          'any_label' => NULL,
-        ),
-        'secondary_label' => NULL,
-        'collapsible_label' => NULL,
-        'combine_rewrite' => NULL,
-        'reset_label' => NULL,
-        'filter_rewrite_values' => NULL,
-      ),
-      'secondary_label' => NULL,
       'collapsible_label' => NULL,
       'combine_rewrite' => NULL,
       'reset_label' => NULL,
@@ -374,6 +335,54 @@ function dkan_harvest_dashboard_views_default_views() {
       'any_label' => NULL,
       'filter_rewrite_values' => NULL,
     ),
+    'dkan_harvest_source_filter' => array(
+      'bef_format' => 'default',
+      'more_options' => array(
+        'is_secondary' => 0,
+        'any_label' => '',
+        'bef_filter_description' => '',
+        'tokens' => array(
+          'available' => array(
+            0 => 'global_types',
+            'secondary_label' => NULL,
+            'collapsible_label' => NULL,
+            'combine_rewrite' => NULL,
+            'reset_label' => NULL,
+            'bef_filter_description' => NULL,
+            'any_label' => NULL,
+            'filter_rewrite_values' => NULL,
+          ),
+          'secondary_label' => NULL,
+          'collapsible_label' => NULL,
+          'combine_rewrite' => NULL,
+          'reset_label' => NULL,
+          'bef_filter_description' => NULL,
+          'any_label' => NULL,
+          'filter_rewrite_values' => NULL,
+        ),
+        'rewrite' => array(
+          'filter_rewrite_values' => '',
+          'secondary_label' => NULL,
+          'collapsible_label' => NULL,
+          'combine_rewrite' => NULL,
+          'reset_label' => NULL,
+          'bef_filter_description' => NULL,
+          'any_label' => NULL,
+        ),
+        'secondary_label' => NULL,
+        'collapsible_label' => NULL,
+        'combine_rewrite' => NULL,
+        'reset_label' => NULL,
+        'filter_rewrite_values' => NULL,
+      ),
+      'secondary_label' => NULL,
+      'collapsible_label' => NULL,
+      'combine_rewrite' => NULL,
+      'reset_label' => NULL,
+      'bef_filter_description' => NULL,
+      'any_label' => NULL,
+      'filter_rewrite_values' => NULL,
+    ),
     'secondary_label' => NULL,
     'collapsible_label' => NULL,
     'combine_rewrite' => NULL,
@@ -491,11 +500,10 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['fields']['field_harvest_source_ref']['settings'] = array(
     'link' => 1,
   );
-  /* Field: Content: Groups audience */
+  /* Field: Content: Publisher */
   $handler->display->display_options['fields']['og_group_ref']['id'] = 'og_group_ref';
   $handler->display->display_options['fields']['og_group_ref']['table'] = 'og_membership';
   $handler->display->display_options['fields']['og_group_ref']['field'] = 'og_group_ref';
-  $handler->display->display_options['fields']['og_group_ref']['label'] = 'Publisher';
   $handler->display->display_options['fields']['og_group_ref']['settings'] = array(
     'link' => 1,
   );
@@ -544,25 +552,11 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id']['table'] = 'field_data_field_harvest_source_ref';
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id']['field'] = 'field_harvest_source_ref_target_id';
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id']['operator'] = 'not empty';
-  /* Filter criterion: Content: Harvest Source (field_harvest_source_ref) (reference filter) */
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['id'] = 'field_harvest_source_ref_target_id_entityreference_filter';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['table'] = 'field_data_field_harvest_source_ref';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['field'] = 'field_harvest_source_ref_target_id_entityreference_filter';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['exposed'] = TRUE;
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['expose']['operator_id'] = 'field_harvest_source_ref_target_id_entityreference_filter_op';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['expose']['label'] = 'Harvest Source';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['expose']['operator'] = 'field_harvest_source_ref_target_id_entityreference_filter_op';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['expose']['identifier'] = 'field_harvest_source_ref_target_id_entityreference_filter';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['expose']['multiple'] = TRUE;
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['expose']['remember_roles'] = array(
-    2 => '2',
-    3 => 0,
-    1 => 0,
-    5 => 0,
-    4 => 0,
-    6 => 0,
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id']['value'] = array(
+    'min' => '',
+    'max' => '',
+    'value' => '',
   );
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_entityreference_filter']['reference_display'] = 'entity_reference_harvest_source_list:entityreference_1';
   /* Filter criterion: Content: Post date */
   $handler->display->display_options['filters']['created']['id'] = 'created';
   $handler->display->display_options['filters']['created']['table'] = 'node';
@@ -630,6 +624,27 @@ function dkan_harvest_dashboard_views_default_views() {
     6 => 0,
   );
   $handler->display->display_options['filters']['field_orphan_value']['expose']['reduce'] = TRUE;
+  /* Filter criterion: Content: Harvest Source (field_harvest_source_ref) */
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['id'] = 'field_harvest_source_ref_target_id_1';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['table'] = 'field_data_field_harvest_source_ref';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['field'] = 'field_harvest_source_ref_target_id';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['value'] = array(
+    41 => '41',
+  );
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['operator_id'] = 'field_harvest_source_ref_target_id_1_op';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['label'] = 'Harvest Source (field_harvest_source_ref)';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['operator'] = 'field_harvest_source_ref_target_id_1_op';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['identifier'] = 'field_harvest_source_ref_target_id_1';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['remember_roles'] = array(
+    2 => '2',
+    3 => 0,
+    1 => 0,
+    5 => 0,
+    4 => 0,
+    6 => 0,
+  );
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['reduce'] = TRUE;
 
   /* Display: Harvested Datasets */
   $handler = $view->new_display('panel_pane', 'Harvested Datasets', 'harvest_datasets');
