@@ -65,7 +65,7 @@ function dkan_harvest_field_default_field_instances() {
     'bundle' => 'harvest_source',
     'default_value' => NULL,
     'deleted' => 0,
-    'description' => '',
+    'description' => 'Set a default value to be used when the specified field is empty.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -155,7 +155,7 @@ function dkan_harvest_field_default_field_instances() {
     'bundle' => 'harvest_source',
     'default_value' => NULL,
     'deleted' => 0,
-    'description' => 'Choose items to exclude by providing their field and the value for that field.',
+    'description' => 'Exclude a specific field and value from your harvest. Using this will import all fields except the ones listed.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -245,7 +245,7 @@ function dkan_harvest_field_default_field_instances() {
     'bundle' => 'harvest_source',
     'default_value' => NULL,
     'deleted' => 0,
-    'description' => 'Add a filter field and value to restrict harvest.',
+    'description' => 'Add one or more filters to narrow a harvest to a specific subset of fields and values.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -381,7 +381,7 @@ function dkan_harvest_field_default_field_instances() {
     'bundle' => 'harvest_source',
     'default_value' => NULL,
     'deleted' => 0,
-    'description' => '',
+    'description' => 'Determine replacement field values that will be overwritten when you harvest.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -610,7 +610,7 @@ function dkan_harvest_field_default_field_instances() {
 
   // Translatables
   // Included for use with string extractors like potx.
-  t('Add a filter field and value to restrict harvest.');
+  t('Add one or more filters to narrow a harvest to a specific subset of fields and values.');
   t('Choose items to exclude by providing their field and the value for that field.');
   t('Defaults');
   t('Excludes');
@@ -623,6 +623,9 @@ function dkan_harvest_field_default_field_instances() {
   t('Type');
   t('Orphan');
   t('Type of source we are harvesting.');
+  t('Set a default value to be used when the specified field is empty.');
+  t('Exclude a specific field and value from your harvest. Using this will import all fields except the ones listed.');
+  t('Determine replacement field values that will be overwritten when you harvest.');
 
   return $field_instances;
 }
