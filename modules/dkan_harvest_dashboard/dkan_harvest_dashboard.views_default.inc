@@ -535,6 +535,11 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['fields']['field_orphan']['table'] = 'field_data_field_orphan';
   $handler->display->display_options['fields']['field_orphan']['field'] = 'field_orphan';
   $handler->display->display_options['fields']['field_orphan']['type'] = 'list_key';
+  /* Field: Content: Published */
+  $handler->display->display_options['fields']['status']['id'] = 'status';
+  $handler->display->display_options['fields']['status']['table'] = 'node';
+  $handler->display->display_options['fields']['status']['field'] = 'status';
+  $handler->display->display_options['fields']['status']['not'] = 0;
   /* Sort criterion: Content: Post date */
   $handler->display->display_options['sorts']['created']['id'] = 'created';
   $handler->display->display_options['sorts']['created']['table'] = 'node';
