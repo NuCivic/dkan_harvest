@@ -51,10 +51,12 @@ class HarvestSource {
 
     $result = $query->execute();
 
-    if (isset($result['node'])) {
-      $harvest_source_nids = array_keys($result['node']);
-      $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
+    if (!isset($result['node'])) {
+      throw new Exception(t('Harvest Source node with machine name %s not found.', array('%s' => $machine_name)));
     }
+
+    $harvest_source_nids = array_keys($result['node']);
+    $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
 
     $harvest_source_emw = entity_metadata_wrapper('node', $harvest_source_node);
 
