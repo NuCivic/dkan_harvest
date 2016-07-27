@@ -41,43 +41,57 @@ class HarvestSource {
    * @param Array source: Source array containing atleast all the required
    * source elements (As documented above) and any other optional proprety.
    */
-  public function __construct($machine_name, Array $source) {
-    // Required properties.
-    if (!is_string($machine_name) || empty($machine_name)) {
-      throw new Exception('HarvestSource machine_name invalid!');
-    }
-    else {
-      $this->machine_name = $machine_name;
+  public function __construct($machine_name) {
+    $query = new EntityFieldQuery();
+
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'harvest_source')
+      ->propertyCondition('status', NODE_PUBLISHED)
+      ->fieldCondition('field_dkan_harvest_machine_name', 'machine', $machine_name);
+
+    $result = $query->execute();
+
+    if (isset($result['node'])) {
+      $harvest_source_nids = array_keys($result['node']);
+      $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
     }
 
-    if (!isset($source['uri']) || !is_string($source['uri'])) {
+    $harvest_source_emw = entity_metadata_wrapper('node', $harvest_source_node);
+
+    $this->machine_name = $harvest_source_emw->field_dkan_harvest_machine_name->machine->value();
+
+    if (!isset($harvest_source_emw->field_dkan_harvest_source_uri)) {
       throw new Exception('HarvestSource uri invalid!');
     }
-    else {
-      $this->uri = $source['uri'];
-    }
+    $this->uri = $harvest_source_emw->field_dkan_harvest_source_uri->value();
 
-    // TODO Make sure the type exists.
-    if (!isset($source['type']) || !is_string($source['type'])) {
+    if (!isset($harvest_source_emw->field_dkan_harveset_type)) {
       throw new Exception('HarvestSource type invalid!');
     }
-    else {
-      // This should throw an exception if the type is not found.
-      $this->type = HarvestSourceType::getSourceType($source['type']);
-    }
+    $type_machine_name = $harvest_source_emw->field_dkan_harveset_type->value();
+    $this->type = HarvestSourceType::getSourceType($type_machine_name);
 
-    // Optional properties.
-    if (!isset($source['label']) || !is_string($source['label'])) {
-      $this->label = $this->machine_name;
-    }
-    else {
-      $this->label = $source['label'];
-    }
 
-    foreach (array('filters', 'excludes', 'defaults', 'overrides') as $optional) {
-      if (isset($source[$optional])) {
-        $this->{$optional} = $source[$optional];
+    $label = $harvest_source_emw->title->value();
+    if (!isset($label) || !is_string($label)) {
+      $label = $this->machine_name;
+    }
+    $this->label = $label;
+
+    $optionals = array(
+      'filters' => 'field_dkan_harvest_filters',
+      'excludes' => 'field_dkan_harvest_excludes',
+      'overrides' => 'field_dkan_harvest_overrides',
+      'defaults' => 'field_dkan_harvest_defaults',
+    );
+
+    foreach ($optionals as $property => $field) {
+      $property_value = array();
+      $field_double = $harvest_source_emw->{$field}->value();
+      foreach ($field_double as $key => $value) {
+        $property_value[$value['first']] = explode(',', $value['second']);
       }
+      $this->{$property} = $property_value;
     }
   }
 
@@ -144,34 +158,6 @@ class HarvestSource {
   }
 
   /**
-   * Query a single harvest source by machine_name.
-   *
-   * @param $machine_name: String source machine_name.
-   *
-   * @return HarvestSource source if found. Else return FALSE.
-   */
-  public static function getSourceByMachineName($machine_name) {
-    $query = new EntityFieldQuery();
-
-    $query->entityCondition('entity_type', 'node')
-      ->entityCondition('bundle', 'harvest_source')
-      ->propertyCondition('status', NODE_PUBLISHED)
-      ->fieldCondition('field_dkan_harvest_machine_name', 'machine', $machine_name);
-
-    $result = $query->execute();
-
-    if (isset($result['node'])) {
-      $harvest_source_nids = array_keys($result['node']);
-      $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
-      return self::getHarvestSourceFromNode($harvest_source_node);
-    }
-
-    // Something went wrong.
-    // TODO log this?
-    return FALSE;
-  }
-
-  /**
    * Get a HarvestSource object from a harvest_source node.
    *
    * @param $harvest_source_node harvest_source node.
@@ -181,38 +167,7 @@ class HarvestSource {
    * @throws Exception if HarvestSource creation fail.
    */
   public static function getHarvestSourceFromNode(stdClass $harvest_source_node) {
-    $harvest_source_emw = entity_metadata_wrapper('node', $harvest_source_node);
-
-    $source = array();
-    $source['label'] = $harvest_source_emw->title->value();
-
-    $machine_name = $harvest_source_emw->field_dkan_harvest_machine_name->machine->value();
-
-    if (isset($harvest_source_emw->field_dkan_harvest_source_uri)) {
-      $source['uri'] = $harvest_source_emw->field_dkan_harvest_source_uri->value();
-    }
-
-    if (isset($harvest_source_emw->field_dkan_harveset_type)) {
-      $source['type'] = $harvest_source_emw->field_dkan_harveset_type->value();
-    }
-
-    $optionals = array(
-      'filters' => 'field_dkan_harvest_filters',
-      'excludes' => 'field_dkan_harvest_excludes',
-      'overrides' => 'field_dkan_harvest_overrides',
-      'defaults' => 'field_dkan_harvest_defaults',
-    );
-
-    foreach ($optionals as $property => $field) {
-      $property_value = array();
-      $field_double = $harvest_source_emw->{$field}->value();
-      foreach ($field_double as $key => $value) {
-        $property_value[$value['first']] = explode(',', $value['second']);
-      }
-      $source[$property] = $property_value;
-    }
-
-    return new HarvestSource($machine_name, $source);
+    return new HarvestSource($harvest_source_node->field_dkan_harvest_machine_name[LANGUAGE_NONE][0]['machine']);
   }
 
   /**

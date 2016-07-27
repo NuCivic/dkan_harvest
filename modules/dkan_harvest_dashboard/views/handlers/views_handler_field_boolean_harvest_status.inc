@@ -109,7 +109,7 @@ class views_handler_field_boolean_harvest_status extends views_handler_field_boo
     }
 
     $machine_name = array_pop($result_array);
-    $harvestSource = HarvestSource::getSourceByMachineName($machine_name);
+    $harvestSource = new HarvestSource($machine_name);
 
       // Get the latest mlid from the message table.
     $query_migrate_log = db_query("SELECT mlid FROM migrate_log WHERE machine_name = :migration_machine_name ORDER BY mlid DESC LIMIT 1",
