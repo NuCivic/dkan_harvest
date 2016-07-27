@@ -619,5 +619,5 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
  * @param array $form_state
  */
 function dkan_harvest_node_save_redirect_submit($form, &$form_state) {
-  $form_state['redirect'] = 'node/' . $form_state['nid'] . '/preview';
+  $form_state['redirect'] = 'node/' . $form_state['nid'] . '/harvest-preview';
 }

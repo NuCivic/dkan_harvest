@@ -98,8 +98,28 @@ function dkan_harvest_page_preview($node) {
     $rows[] = array($id, $dataset_item['title']);
   }
 
-  $caption = l(t('Import/Process information'), 'admin/dkan/harvest');
+  $form_import = drupal_get_form('dkan_harvest_form_import_preview', $node);
+  $caption = drupal_render($form_import);
   $header = array(t('Identifier'), t('Title'));
   $output .= theme('table', array('rows' => $rows, 'header' => $header, 'caption' => $caption));
   return $output;
+}
+
+function dkan_harvest_form_import_preview($form, &$form_state, $node) {
+  $form = array();
+  $form['#node'] = $node;
+
+  $form['import'] = array(
+    '#type' => 'submit',
+    '#value' => t('Harvest now'),
+  );
+
+  return $form;
+}
+
+function dkan_harvest_form_import_preview_submit($form, &$form_state) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($form['#node']);
+  dkan_harvest_cache_sources(array($harvestSource));
+  dkan_harvest_migrate_sources(array($harvestSource));
+  $form_state['redirect'] = 'admin/dkan/harvest/dashboard';
 }
