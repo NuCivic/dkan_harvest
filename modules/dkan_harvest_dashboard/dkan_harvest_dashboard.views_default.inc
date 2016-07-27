@@ -303,7 +303,7 @@ function dkan_harvest_dashboard_views_default_views() {
         ),
         'rewrite' => array(
           'filter_rewrite_values' => 'On|Yes
-  Off|No',
+Off|No',
           'secondary_label' => NULL,
           'collapsible_label' => NULL,
           'combine_rewrite' => NULL,
@@ -724,6 +724,7 @@ function dkan_harvest_dashboard_views_default_views() {
     4 => 0,
     6 => 0,
   );
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['reduce'] = TRUE;
 
   /* Display: Source Page */
   $handler = $view->new_display('page', 'Source Page', 'harvest_datasets_source_page');
@@ -751,7 +752,6 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['menu']['weight'] = '0';
   $handler->display->display_options['menu']['context'] = 0;
   $handler->display->display_options['menu']['context_only_inline'] = 0;
-
   $export['dkan_harvest_datasets'] = $view;
 
   return $export;
