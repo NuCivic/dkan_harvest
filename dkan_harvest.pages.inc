@@ -68,6 +68,16 @@ function dkan_harvest_page_event_log($node) {
     $rows[] = $row;
   }
 
+  // Add help text
+  $build['help'] = array(
+    '#attributes' => array(
+      'class' => array('help-block'),
+    ),
+    '#type' => 'markup',
+    '#markup' => t('Chronological log of harvests performed on this source. See the "Error log" page for details on any failures listed here.'),
+    '#prefix' => '<span class="help-block">',
+    '#suffix' => '</span>',
+  );
 
   // Return properly styled output.
   $build['pager_table'] = array(
