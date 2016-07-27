@@ -1,25 +1,6 @@
 <?php
 
 /**
- * Determines whether the current user may access the harvest source event log
- * page.
- *
- * @param $node The harvest source node being acted upon.
- *
- * @return TRUE if access is granted. Otherwise FALSE.
- */
-function dkan_harvest_page_event_log_access($node) {
-  // Only available for harves source type nodes.
-  if ($node->type != 'harvest_source') {
-    return FALSE;
-  }
-
-  // If the user can update the harvest node. Grant her/him access to the event
-  // log.
-  return node_access('update', $node);
-}
-
-/**
  * Display a harvest source node's event log history.
  *
  * @param $node The harvest source node being acted upon.
@@ -105,25 +86,6 @@ function dkan_harvest_page_event_log($node) {
   $build['pager_pager'] = array('#theme' => 'pager');
 
   return $build;
-}
-
-/**
- * Determines whether the current user may access the harvest source event log
- * page.
- *
- * @param $node The harvest source node being acted upon.
- *
- * @return TRUE if access is granted. Otherwise FALSE.
- */
-function dkan_harvest_page_error_log_access($node) {
-  // Only available for harves source type nodes.
-  if ($node->type != 'harvest_source') {
-    return FALSE;
-  }
-
-  // If the user can update the harvest node. Grant her/him access to the event
-  // log.
-  return node_access('update', $node);
 }
 
 

@@ -18,7 +18,46 @@ define(
 );
 
 /**
+ * Determines whether the current user may access the harvest source event log
+ * page.
  *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return TRUE if access is granted. Otherwise FALSE.
+ */
+function dkan_harvest_page_event_log_access($node) {
+  // Only available for harves source type nodes.
+  if ($node->type != 'harvest_source') {
+    return FALSE;
+  }
+
+  // If the user can update the harvest node. Grant her/him access to the event
+  // log.
+  return node_access('update', $node);
+}
+
+/**
+ * Determines whether the current user may access the harvest source event log
+ * page.
+ *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return TRUE if access is granted. Otherwise FALSE.
+ */
+function dkan_harvest_page_error_log_access($node) {
+  // Only available for harves source type nodes.
+  if ($node->type != 'harvest_source') {
+    return FALSE;
+  }
+
+  // If the user can update the harvest node. Grant her/him access to the event
+  // log.
+  //return node_access('view', $node);
+  return node_access('update', $node);
+}
+
+/**
+ * Implements hook_menu().
  */
 function dkan_harvest_menu() {
   $items = array();
@@ -39,7 +78,7 @@ function dkan_harvest_menu() {
     'title' => 'Error Log',
     'page callback' => 'dkan_harvest_page_error_log',
     'page arguments' => array(1),
-    'access callback' => dkan_harvest_page_error_log_access,
+    'access callback' => 'dkan_harvest_page_error_log_access',
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dkan_harvest.pages.inc',
