@@ -420,8 +420,11 @@ class HarvestMigration extends MigrateDKAN {
   public function postImport() {
     parent::postImport();
 
-    // Clean up any previously failed entries that does not have any
-    // destination dataset and that are missing from the processed list.
+    // Zombie entries are datasets that failed to import during a previous
+    // harvest migration and does not have any destination node and during the
+    // current harvest they are missing from the source as well.
+
+    // Look for those zombie dataset and clean them.
     $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, $this->idListImported, "NOT IN", NULL, NULL);
 
     if (!empty($zombies)) {
