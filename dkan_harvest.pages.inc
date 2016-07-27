@@ -99,9 +99,10 @@ function dkan_harvest_page_preview($node) {
   }
 
   $form_import = drupal_get_form('dkan_harvest_form_import_preview', $node);
-  $caption = drupal_render($form_import);
+  $caption = t('Harvesting from this source as it is currently configured will import the datasets listed below into this data portal. Click "Edit" above to change the source\'s configuration, click the "Harvest now" button at the bottom of the page to run the harvest immediately, or simply continue working and the harvest will be performed on schedule.');
   $header = array(t('Identifier'), t('Title'));
   $output .= theme('table', array('rows' => $rows, 'header' => $header, 'caption' => $caption));
+  $output .= drupal_render($form_import);
   return $output;
 }
 
