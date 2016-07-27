@@ -606,6 +606,18 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
     $field_desc = $form['field_dkan_harvest_defaults'][$language]['#description'];
     $form['field_dkan_harvest_defaults'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
     $form['field_dkan_harvest_defaults'][$language]['#description'] = '';
+
+    //Add redirect to tab preview after save.
+    $form['actions']['submit']['#submit'][] = 'dkan_harvest_node_save_redirect_submit';
   }
 }
 
+/**
+ * A function that is called when a node is saved.
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function dkan_harvest_node_save_redirect_submit($form, &$form_state) {
+  $form_state['redirect'] = 'node/' . $form_state['nid'] . '/preview';
+}
