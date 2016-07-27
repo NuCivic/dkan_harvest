@@ -62,3 +62,19 @@ function dkan_harvest_dashboard_sources_page() {
 function dkan_harvest_dashboard_datasets_page() {
   return views_embed_view('dkan_harvest_datasets', 'harvest_datasets');
 }
+
+function dkan_harvest_dashboard_form_alter(&$form, $form_state, $form_id) {
+  if(  $form_id == 'views_exposed_form' 
+    && $form_state['view'] 
+    && $form_state['view']->name ) {
+
+    $module_path = drupal_get_path('module', 'dkan_harvest_dashboard');
+    drupal_add_css( $module_path . '/dkan_harvest_dashboard.css');
+    $form['created']['max']['#title'] = '';
+    $form['changed']['max']['#title'] = '';
+    $form['created']['min']['#attributes']['placeholder'] = t('From');
+    $form['created']['max']['#attributes']['placeholder'] = t('To');
+    $form['changed']['min']['#attributes']['placeholder'] = t('From');
+    $form['changed']['max']['#attributes']['placeholder'] = t('To');
+  }
+}

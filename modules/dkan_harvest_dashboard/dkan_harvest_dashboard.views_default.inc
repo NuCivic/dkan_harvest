@@ -303,8 +303,8 @@ function dkan_harvest_dashboard_views_default_views() {
           'filter_rewrite_values' => NULL,
         ),
         'rewrite' => array(
-          'filter_rewrite_values' => 'On|Yes
-Off|No',
+          'filter_rewrite_values' => 'On|Orphans only
+Off|Non-orphans only',
           'secondary_label' => NULL,
           'collapsible_label' => NULL,
           'combine_rewrite' => NULL,
@@ -554,7 +554,7 @@ Off|No',
   $handler->display->display_options['filters']['created']['operator'] = 'between';
   $handler->display->display_options['filters']['created']['exposed'] = TRUE;
   $handler->display->display_options['filters']['created']['expose']['operator_id'] = 'created_op';
-  $handler->display->display_options['filters']['created']['expose']['label'] = 'Filter by Post date (range)';
+  $handler->display->display_options['filters']['created']['expose']['label'] = 'Post date';
   $handler->display->display_options['filters']['created']['expose']['operator'] = 'created_op';
   $handler->display->display_options['filters']['created']['expose']['identifier'] = 'created';
   $handler->display->display_options['filters']['created']['expose']['remember_roles'] = array(
@@ -580,7 +580,7 @@ Off|No',
   $handler->display->display_options['filters']['changed']['operator'] = 'between';
   $handler->display->display_options['filters']['changed']['exposed'] = TRUE;
   $handler->display->display_options['filters']['changed']['expose']['operator_id'] = 'changed_op';
-  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Filter by Updated date (range)';
+  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Update Date';
   $handler->display->display_options['filters']['changed']['expose']['operator'] = 'changed_op';
   $handler->display->display_options['filters']['changed']['expose']['identifier'] = 'changed';
   $handler->display->display_options['filters']['changed']['expose']['remember_roles'] = array(
@@ -602,7 +602,7 @@ Off|No',
   );
   $handler->display->display_options['filters']['field_orphan_value']['exposed'] = TRUE;
   $handler->display->display_options['filters']['field_orphan_value']['expose']['operator_id'] = 'field_orphan_value_op';
-  $handler->display->display_options['filters']['field_orphan_value']['expose']['label'] = 'Orphan (field_orphan)';
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['label'] = 'Orphan Status';
   $handler->display->display_options['filters']['field_orphan_value']['expose']['operator'] = 'field_orphan_value_op';
   $handler->display->display_options['filters']['field_orphan_value']['expose']['identifier'] = 'field_orphan_value';
   $handler->display->display_options['filters']['field_orphan_value']['expose']['remember_roles'] = array(
@@ -643,7 +643,7 @@ Off|No',
   $handler->display->display_options['filters']['created']['operator'] = 'between';
   $handler->display->display_options['filters']['created']['exposed'] = TRUE;
   $handler->display->display_options['filters']['created']['expose']['operator_id'] = 'created_op';
-  $handler->display->display_options['filters']['created']['expose']['label'] = 'Filter by Post date (range)';
+  $handler->display->display_options['filters']['created']['expose']['label'] = 'Post date';
   $handler->display->display_options['filters']['created']['expose']['operator'] = 'created_op';
   $handler->display->display_options['filters']['created']['expose']['identifier'] = 'created';
   $handler->display->display_options['filters']['created']['expose']['remember_roles'] = array(
@@ -669,7 +669,7 @@ Off|No',
   $handler->display->display_options['filters']['changed']['operator'] = 'between';
   $handler->display->display_options['filters']['changed']['exposed'] = TRUE;
   $handler->display->display_options['filters']['changed']['expose']['operator_id'] = 'changed_op';
-  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Filter by Updated date (range)';
+  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Updated date';
   $handler->display->display_options['filters']['changed']['expose']['operator'] = 'changed_op';
   $handler->display->display_options['filters']['changed']['expose']['identifier'] = 'changed';
   $handler->display->display_options['filters']['changed']['expose']['remember_roles'] = array(
@@ -691,7 +691,7 @@ Off|No',
   );
   $handler->display->display_options['filters']['field_orphan_value']['exposed'] = TRUE;
   $handler->display->display_options['filters']['field_orphan_value']['expose']['operator_id'] = 'field_orphan_value_op';
-  $handler->display->display_options['filters']['field_orphan_value']['expose']['label'] = 'Orphan (field_orphan)';
+  $handler->display->display_options['filters']['field_orphan_value']['expose']['label'] = 'Orphan Status';
   $handler->display->display_options['filters']['field_orphan_value']['expose']['operator'] = 'field_orphan_value_op';
   $handler->display->display_options['filters']['field_orphan_value']['expose']['identifier'] = 'field_orphan_value';
   $handler->display->display_options['filters']['field_orphan_value']['expose']['remember_roles'] = array(
@@ -714,7 +714,7 @@ Off|No',
   );
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['exposed'] = TRUE;
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['operator_id'] = 'field_harvest_source_ref_target_id_1_op';
-  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['label'] = 'Harvest Source (field_harvest_source_ref)';
+  $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['label'] = 'Source';
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['operator'] = 'field_harvest_source_ref_target_id_1_op';
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['identifier'] = 'field_harvest_source_ref_target_id_1';
   $handler->display->display_options['filters']['field_harvest_source_ref_target_id_1']['expose']['remember_roles'] = array(
