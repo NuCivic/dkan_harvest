@@ -42,13 +42,17 @@ class HarvestSource {
    * source elements (As documented above) and any other optional proprety.
    */
   public function __construct($machine_name) {
-    $query = new EntityFieldQuery();
+    // $machine_name is really needed to construct this object.
+    if (empty($machine_name) || is_null($machine_name)) {
+      throw new Exception(t('machine name is required!'));
+    }
 
+    // Query the DB for a harvest_source node matching the machine name.
+    $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'node')
       ->entityCondition('bundle', 'harvest_source')
       ->propertyCondition('status', NODE_PUBLISHED)
       ->fieldCondition('field_dkan_harvest_machine_name', 'machine', $machine_name);
-
     $result = $query->execute();
 
     if (!isset($result['node'])) {
@@ -57,7 +61,6 @@ class HarvestSource {
 
     $harvest_source_nids = array_keys($result['node']);
     $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
-
     $harvest_source_emw = entity_metadata_wrapper('node', $harvest_source_node);
 
     $this->machine_name = $harvest_source_emw->field_dkan_harvest_machine_name->machine->value();
