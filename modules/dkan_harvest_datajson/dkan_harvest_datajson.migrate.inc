@@ -33,7 +33,6 @@ class DatajsonHarvestMigration extends HarvestMigration {
    */
   public function setFieldMappings($version = '1.1') {
     parent::setFieldMappings();
-    $this->addFieldMapping('og_group_ref', 'group_id');
 
     $this->addFieldMapping('field_tags', 'keyword');
     $this->addFieldMapping('field_tags:create_term')
@@ -153,6 +152,9 @@ class DatajsonHarvestMigration extends HarvestMigration {
   public function prepare($dataset_prepare, $row) {
     parent::prepare($dataset_prepare, $row);
 
+    // Prepare group data.
+    $row->group = $this->prepareRowGroup($row->publisher);
+
     // Prepare resources data.
     $row->resources = $this->prepareRowResources($row->distribution);
   }
@@ -181,5 +183,20 @@ class DatajsonHarvestMigration extends HarvestMigration {
     }
 
     return $resources;
+  }
+
+  /**
+   * Prepare group that needs to be imported based on the row data.
+   *
+   * @param $group_row_data Group data present on row.
+   *
+   * @return An object value with the group data needed to import the group.
+   */
+  public function prepareRowGroup($group_row_data) {
+
+    $group = new stdClass();
+    $group->name = $group_row_data->name;
+
+    return $group;
   }
 }

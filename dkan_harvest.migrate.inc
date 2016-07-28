@@ -222,6 +222,8 @@ class HarvestMigration extends MigrateDKAN {
    * {@inheritdoc}
    */
   public function complete($dataset, $row) {
+    // Add group.
+    $this->prepareGroup($dataset, $row);
 
     // Create resources after the dataset was created. If the creation of the dataset
     // fails resources should not be created. Also, we need the dataset to be
@@ -238,7 +240,7 @@ class HarvestMigration extends MigrateDKAN {
    * If we are updating an existing dataset. Remove the existing resources and
    * replace them.
    *
-   * @param $dataset_prepare dataset entity to prepare.
+   * @param $dataset entity where resources are going to be added.
    * @param stdClass $row Migrate row.
    */
   private function createResources(&$dataset, stdClass &$row) {
@@ -270,6 +272,46 @@ class HarvestMigration extends MigrateDKAN {
         }
       }
     }
+  }
+
+  /**
+   * Get the nid of the group associated with the dataset. Create the group if
+   * it doesn't exist. Add group nid to the row data.
+   *
+   * @param $dataset entity where groups are going to be added.
+   * @param stdClass $row Migrate row.
+   */
+  private function prepareGroup(&$dataset, stdClass &$row) {
+
+    // If there is a group check if it already exists and create it if not.
+    if (isset($row->group)) {
+      $group_data = $row->group;
+      $gid = $this->getGroupIdByName($group_data->name);
+      if (!$gid) {
+        $group_node = $this->createGroupNode($group_data);
+        if ($group_node) {
+          $gid = $group_node->nid;
+        }
+      }
+
+      if ($gid) {
+        $dataset->og_group_ref[LANGUAGE_NONE][] = array(
+          'target_id' => $gid,
+        );
+      }
+    }
+  }
+
+  /**
+   * Get the id of a group based on the title.
+   *
+   * @param $title Title of the group that is being searched.
+   *
+   * @return The group id or false if the group was not found.
+   */
+  public function getGroupIdByName($title) {
+    $result = db_query("SELECT n.nid FROM {node} n WHERE n.title = :title AND n.type = 'group'", array(":title"=> $title));
+    return $result->fetchField();
   }
 
   /**
@@ -924,13 +966,8 @@ class HarvestMigration extends MigrateDKAN {
    *
    * Create a dkan resource node from the values provided.
    *
-   * @param Array $resource values for the resources node to be created.
+   * @param Array $res values for the resources node to be created.
    *  Expected to be prepared with the self::prepareResourceHelper() methode.
-   * @param $save flag to save the node object before returing it or return it
-   * unsaved.
-   * @param $uid User ID to use as author to the created resource. Default to 1.
-   * @param $is_new Set the resource as new.
-   * @param $language Language param for the resource node.
    *
    * @return resource node object.
    */
@@ -943,7 +980,7 @@ class HarvestMigration extends MigrateDKAN {
       'is_new' => TRUE,
       "language" => LANGUAGE_NONE,
       "uid" => 1,
-      "status" => TRUE,
+      "status" => NODE_PUBLISHED,
     );
 
     $resource_node = entity_create('node', $values);
@@ -979,6 +1016,32 @@ class HarvestMigration extends MigrateDKAN {
 
     $resource_emw->save();
     return $resource_emw->raw();
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Create a dkan group node from the values provided.
+   *
+   * @param Array $group values for the group node to be created.
+   *
+   * @return group node object.
+   */
+  public function createGroupNode($group) {
+
+    $values = array(
+      "type" => 'group',
+      "is_new" => TRUE,
+      "language" => LANGUAGE_NONE,
+      "uid" => 1,
+      "status" => NODE_PUBLISHED,
+      "title" => $group->name,
+    );
+
+    $group_node = entity_create('node', $values);
+    node_save($group_node);
+
+    return $group_node;
   }
 
   /**
