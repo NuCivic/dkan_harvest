@@ -3,6 +3,7 @@ api = 2
 
 projects[migrate][version] = 2.x
 projects[migrate][subdir] = contrib
+projects[migrate][patch][1989492] = https://www.drupal.org/files/migrate-append-map-messages-1989492-2.patch
 
 projects[dkan_migrate_base][type] = module
 projects[dkan_migrate_base][download][type] = git

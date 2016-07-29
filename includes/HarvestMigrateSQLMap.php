@@ -339,9 +339,19 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
   /**
    * {@inheritdoc}
    */
-  public function saveMessage($source_key, $message, $level = Migration::MESSAGE_ERROR) {
-    $migration = Migration::currentMigration();
-    $fields['mlid'] = $migration->getLogID();
+  public function saveMessage($source_key, $message, $level = Migration::MESSAGE_ERROR, $mlid = FALSE) {
+    // Get the mlid.
+    if (!$mlid) {
+      // Default option. This is not the best way to get the mlid and will fail
+      // miserably in concurrent migrations (iprobably not supported by
+      // migration).
+      $migration = Migration::currentMigration();
+      $fields['mlid'] = $migration->getLogID();
+    }
+    else {
+      $fields['mlid'] = $mlid;
+    }
+
     // Source IDs as arguments
     $count = 1;
     if (is_array($source_key)) {

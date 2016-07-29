@@ -76,6 +76,9 @@ class HarvestMigration extends MigrateDKAN {
     $this->dkanHarvestMigrateSQLMapConnectionKey = 'default';
     $this->dkanHarvestMigrateSQLMapSourceOptions = array(
       'track_last_imported' => TRUE,
+      // This is added to avoid migrate deleting old message logs. Need
+      // https://www.drupal.org/files/migrate-append-map-messages-1989492-2.patch
+      'append_messages' => TRUE,
     );
 
     $this->map = new HarvestMigrateSQLMap(
@@ -985,13 +988,6 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
-   * Getter for harvest source. This is mainly used for unittests.
-   */
-  public function getHarvestSource() {
-    return $this->dkanHarvestSource;
-  }
-
-  /**
    * {@inheritdoc}
    *
    * Change the default to not warn as overriding field mapping is common
@@ -1004,7 +1000,42 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
+   * {@inheritdoc}
    *
+   * Add support for the $mlid column.
+   */
+  public function queueMessage($message, $level = MigrationBase::MESSAGE_ERROR, $mlid = FALSE) {
+    // Use the default $mlid if not available.
+    if (!$mlid) {
+      $mlid = $this->getLogID();
+    }
+
+    $this->queuedMessages[] = array(
+      'message' => $message,
+      'level' => $level,
+      'mlid' => $mlid,
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Add support for the $mlid column.
+   */
+  public function saveMessage($message, $level = MigrationBase::MESSAGE_ERROR, $mlid = FALSE) {
+    $this->map->saveMessage($this->currentSourceKey(), $message, $level, $mlid);
+  }
+
+  /**
+   * Getter for harvest source. This is mainly used for unittests.
+   */
+  public function getHarvestSource() {
+    return $this->dkanHarvestSource;
+  }
+
+  /**
+   * Getter for the $logID variable. Mainly used for the HarvestMigrateSQLMap
+   * class.
    */
   public function getLogID() {
     return $this->logID;
