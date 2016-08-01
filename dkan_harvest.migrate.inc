@@ -117,6 +117,20 @@ class HarvestMigration extends MigrateDKAN {
     $this->setFieldMappings();
   }
 
+  public function sourceCount($refresh = FALSE) {
+    $count = parent::sourceCount();
+
+    if ($count == 0) {
+      $message = t('Items to import is 0. Looks like source is missing. If you have ran, previous migration the datasets migrated will be unpublished.');
+      dkan_harvest_log($message);
+
+      //Call to postImport to disable datasets.
+      $this->postImport();
+    }
+
+    return $count;
+  }
+
   /**
    * Runs before an import starts.
    *
