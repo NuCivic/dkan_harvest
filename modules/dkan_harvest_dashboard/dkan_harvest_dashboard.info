@@ -18,6 +18,3 @@ features[user_permission][] = use Rules component rules_dkan_harvest_source_cach
 features[user_permission][] = use Rules component rules_dkan_harvest_source_migrate
 features[views_view][] = dkan_harvest_dashboard
 features[views_view][] = dkan_harvest_datasets
-features_exclude[dependencies][views_content] = views_content
-files[] = views/handlers/views_handler_field_date_harvest_date.inc
-files[] = views/handlers/views_handler_field_numeric_harvest_count.inc
