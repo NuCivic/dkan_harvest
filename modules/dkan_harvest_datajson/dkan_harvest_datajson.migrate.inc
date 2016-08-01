@@ -144,6 +144,7 @@ class DatajsonHarvestMigration extends HarvestMigration {
    * Implements prepareRow.
    */
   public function prepareRow($row) {
+    $row->accrualPeriodicity = dkan_dataset_content_types_iso2frequency($row->accrualPeriodicity);
     parent::prepareRow($row);
   }
 

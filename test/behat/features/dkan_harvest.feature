@@ -106,7 +106,7 @@ Feature: Dkan Harvest
   And The "source_one" source is harvested
   And I am logged in as a "<role>"
   And I am on the "Source one" page
-  Then I should see 5 search results shown on the page in the 'harvest_source' search form
+  Then I should see 10 search results shown on the page in the 'harvest_source' search form
 
   Examples:
   | role               |
@@ -130,7 +130,7 @@ Feature: Dkan Harvest
   And I am logged in as a "<role>"
   And I am on the "Harvest Dashboard Datasets" page
   And I should see a table with a class name "views-table"
-  And the table with the class name "views-table" should have 5 rows
+  And the table with the class name "views-table" should have 10 rows
   
   Examples:
   | role               |
@@ -208,7 +208,7 @@ Feature: Dkan Harvest
   And I press "Apply"
   Then I wait for "3" seconds
   And I should see a table with a class name "views-table"
-  Then the table with the class name "views-table" should have 5 rows
+  Then the table with the class name "views-table" should have 10 rows
   
   Examples:
   | role               |
@@ -236,7 +236,7 @@ Feature: Dkan Harvest
   Then I wait for "DKAN Harvest Dashboard"
   And I should see "Performed Delete item on 1 item"
   And I should see a table with a class name "views-table"
-  Then the table with the class name "views-table" should have 4 rows
+  Then the table with the class name "views-table" should have 10 rows
 
   Examples:
   | role               |
