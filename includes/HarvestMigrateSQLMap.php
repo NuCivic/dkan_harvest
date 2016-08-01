@@ -57,37 +57,16 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
    */
   public function __construct($machine_name, array $source_key,
     array $destination_key, $connection_key = 'default', $options = array()) {
-    if (isset($options['track_last_imported'])) {
-      $this->trackLastImported = TRUE;
-    }
 
-    $this->connection = Database::getConnection('default', $connection_key);
+    // Save the logTable name before creating the tables.
+    $db_connection = Database::getConnection('default', $connection_key);
 
     // Default generated table names, limited to 63 characters
-    $prefixLength = strlen($this->connection->tablePrefix());
-    $this->mapTable = 'migrate_map_' . drupal_strtolower($machine_name);
-    $this->mapTable = drupal_substr($this->mapTable, 0, 63 - $prefixLength);
-    $this->messageTable = 'migrate_message_' . drupal_strtolower($machine_name);
-    $this->messageTable = drupal_substr($this->messageTable, 0, 63 - $prefixLength);
+    $prefixLength = strlen($db_connection->tablePrefix());
     $this->logTable = 'migrate_log_' . drupal_strtolower($machine_name);
     $this->logTable = drupal_substr($this->logTable, 0, 63 - $prefixLength);
 
-    $this->sourceKey = $source_key;
-    $this->destinationKey = $destination_key;
-
-    // Build the source and destination key maps
-    $this->sourceKeyMap = array();
-    $count = 1;
-    foreach ($source_key as $field => $schema) {
-      $this->sourceKeyMap[$field] = 'sourceid' . $count++;
-    }
-    $this->destinationKeyMap = array();
-    $count = 1;
-    foreach ($destination_key as $field => $schema) {
-      $this->destinationKeyMap[$field] = 'destid' . $count++;
-    }
-    $this->ensureTables();
-
+    parent::__construct($machine_name, $source_key, $destination_key, $connection_key, $options);
   }
 
   /**
@@ -280,7 +259,7 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
   /**
   * {@inheritdoc}
   *
-  * Remove the associated map and message tables.
+  * Remove the associated log tables.
   */
   public function destroy() {
     parent::destroy();
