@@ -436,7 +436,9 @@ class HarvestMigration extends MigrateDKAN {
         array_push($zombies_sourceids, $zombie->sourceid1);
       }
       $this->displayMessage(t('Deleting previously failed imports that does not exist in the harvest source anymore.'));
-      $this->getMap()->deleteBulk($zombies_sourceids);
+      // Delete the map entry of the zombie dataset. Keep the message for
+      // historical log.
+      $this->getMap()->deleteBulkFromMap($zombies_sourceids);
     }
 
     // We need the postImportRestoredSource() call to be before the

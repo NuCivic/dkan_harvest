@@ -353,4 +353,21 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
       Migration::displayMessage($message);
     }
   }
+
+  /**
+   * Rip off the MigrateSQLMap::deleteBulk() that only supports one key and
+   * deletes the map table entry by sourceid.
+   */
+  public function deleteBulkFromMap(array $source_keys) {
+    // If we have a single-column key, we can shortcut it
+    if (count($this->sourceKey) == 1) {
+      $sourceids = array();
+      foreach ($source_keys as $source_key) {
+        $sourceids[] = $source_key;
+      }
+      $this->connection->delete($this->mapTable)
+        ->condition('sourceid1', $sourceids, 'IN')
+        ->execute();
+    }
+  }
 }
