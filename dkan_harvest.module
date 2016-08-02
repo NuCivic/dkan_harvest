@@ -64,7 +64,7 @@ function dkan_harvest_menu() {
   $weight = 0;
 
   $items['node/%node/harvest-events'] = array(
-    'title' => 'Event Log',
+    'title' => t('Event'),
     'page callback' => 'dkan_harvest_page_event_log',
     'page arguments' => array(1),
     'access callback' => 'dkan_harvest_page_event_log_access',
@@ -75,7 +75,7 @@ function dkan_harvest_menu() {
   );
 
   $items['node/%node/harvest-errors'] = array(
-    'title' => 'Error Log',
+    'title' => t('Error'),
     'page callback' => 'dkan_harvest_page_error_log',
     'page arguments' => array(1),
     'access callback' => 'dkan_harvest_page_error_log_access',
