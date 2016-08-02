@@ -139,8 +139,10 @@ function dkan_harvest_page_error_log($node) {
       // returns an array, But really we are interested in one sincle result.
       $sourceid = $result->sourceid1;
       $destids = $harvestSourceMigrationMap->lookupDestinationID(array($sourceid));
-      $destid = array_pop($destids);
-      if (!is_null($destid)) {
+      // We expect an array with one valid item. If not fallback to default
+      // "N/A".
+      if (is_array($destids) && count($destids) == 1 && isset($destids['destid1'])) {
+        $destid = array_pop($destids);
         $result->dataset_link = l(t('Dataset link'), 'node/'. $destid);
       }
     }
@@ -160,6 +162,9 @@ function dkan_harvest_page_error_log($node) {
 
   $build = array();
   $collapsible_item_offset = 0;
+  // We can use the mlid key as the bases of the sorting. The bigger the mlid
+  // the more recent the harvest migrate event. Preserve the key.
+  $collapsible_items = array_reverse($collapsible_items, FALSE);
   foreach ($collapsible_items as $collapsible_item_mlid => $collapsible_item) {
     $collapsible_inner_table = array(
       '#attached' => array(
