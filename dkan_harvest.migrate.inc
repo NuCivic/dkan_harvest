@@ -113,8 +113,16 @@ class HarvestMigration extends MigrateDKAN {
       self::displayMessage($message, 'error');
     }
 
-    $harvest_source_nids = array_keys($result['node']);
-    $this->dkanHarvestSourceNid = array_pop($harvest_source_nids);
+    // This should be set when running the harvest with a harvest source node. Add
+    // a check to support the phpunit tests that run from nodeless harvest source
+    // object.
+    if (isset($result['node'])) {
+      $harvest_source_nids = array_keys($result['node']);
+      $this->dkanHarvestSourceNid = array_pop($harvest_source_nids);
+    }
+    else {
+      $this->dkanHarvestSourceNid = FALSE;
+    }
 
     // Add Field mappings.
     $this->setFieldMappings();
