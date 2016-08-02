@@ -3,7 +3,7 @@
 DKAN_MODULE=`ls *.info | cut -d'.' -f1`
 
 # DKAN branch or tag to use.
-DKAN_VERSION="3568-groups-import"
+DKAN_VERSION="harvest_dkan_integration"
 
 COMPOSER_PATH="$HOME/.config/composer/vendor/bin"
 
