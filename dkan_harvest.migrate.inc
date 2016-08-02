@@ -420,6 +420,13 @@ class HarvestMigration extends MigrateDKAN {
   public function postImport() {
     parent::postImport();
 
+    //Check if sourceCount is 0.
+    if ($this->sourceCount() == 0) {
+      $message = t('Items to import is 0. Looks like source is missing. If you have ran, previous migration the datasets migrated will be unpublished.');
+      self::displayMessage($message, 'error');
+      $this->saveMessage($message);
+    }
+
     // Clean up any previously failed entries that does not have any
     // destination dataset and that are missing from the processed list.
     $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, $this->idListImported, "NOT IN", NULL, NULL);
