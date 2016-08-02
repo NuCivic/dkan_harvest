@@ -33,5 +33,19 @@ class HarvestSourceContext extends RawDKANEntityContext {
   public function addHarvestSources(TableNode $harvestSourcesTable) {
     parent::addMultipleFromTable($harvestSourcesTable);
   }
-
+  
+  /**
+  * @AfterScenario @harvest_rollback
+  */
+  public function harvestRollback(AfterScenarioScope $event)
+  {
+    $migrations = migrate_migrations();
+    $harvest_migrations = array();
+    foreach ($migrations as $name => $migration) {
+      if(strpos($name , 'dkan_harvest') === 0) {
+        $migration = Migration::getInstance($name);
+        $migration->processRollback();
+      }
+    }
+  }
 }
