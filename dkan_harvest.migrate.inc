@@ -206,7 +206,6 @@ class HarvestMigration extends MigrateDKAN {
    */
   public function prepareRow($row) {
     parent::prepareRow($row);
-    $row->migrate_map_dkan_harvest_object_id = $dkanHarvestSource->machine_name;
     $this->idListImported[] = $row->dkan_harvest_object_id;
   }
 
