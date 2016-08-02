@@ -27,7 +27,15 @@ function dkan_harvest_menu() {
     'title' => 'Event Log',
     'page callback' => 'dkan_harvest_page_event_log',
     'page arguments' => array(1),
-    'access callback' => 'dkan_harvest_page_event_log_access',
+    'access callback' => 'dkan_harvest_page_additional_access',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['node/%node/harvest-preview'] = array(
+    'title' => 'Preview',
+    'page callback' => 'dkan_harvest_page_preview',
+    'page arguments' => array(1),
+    'access callback' => 'dkan_harvest_page_additional_access',
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
   );
@@ -36,14 +44,14 @@ function dkan_harvest_menu() {
 }
 
 /**
- * Determines whether the current user may access the harvest source event log
+ * Determines whether the current user may access the harvest source event log/Preview
  * page.
  *
  * @param $node The harvest source node being acted upon.
  *
  * @return TRUE if access is granted. Otherwise FALSE.
  */
-function dkan_harvest_page_event_log_access($node) {
+function dkan_harvest_page_additional_access($node) {
   // Only available for harves source type nodes.
   if ($node->type != 'harvest_source') {
     return FALSE;
@@ -52,36 +60,6 @@ function dkan_harvest_page_event_log_access($node) {
   // If the user have access to the harvest node. Grant her/him access to the
   // event log.
   return node_access('view', $node);
-}
-
-/**
- * Get the last event log from a harvest source node.
- *
- * @param $node The harvest source node being acted upon.
- *
- * @return a date.
- */
-function dkan_harvest_get_last_event_log($node) {
-  $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
-  $harvestSourceMigration = dkan_harvest_get_migration($harvestSource);
-  $logTable = $harvestSourceMigration->getMap()->getLogTable();
-
-  $query = db_select('migrate_log', 'log');
-
-  $query->join($logTable, 'harvest_source_log', 'log.mlid = harvest_source_log.mlid');
-
-  $query_result = $query
-    ->fields('log')
-    ->fields('harvest_source_log')
-    ->condition('machine_name', $harvestSource->getMigrationMachineName())
-    ->orderBy('log.starttime', 'DESC');
-
-  $query->addExpression('log.endtime - log.starttime', 'duration');
-
-  $result = $query->execute()->fetchObject();
-  $time = floor($result->starttime/1000);
-  return format_date($time);
-
 }
 
 /**
@@ -134,24 +112,6 @@ function dkan_harvest_page_event_log($node) {
 
   // Build the table rows.
   $rows = array();
-  foreach ($results as $result) {
-    $row = array(
-      'data' => array(
-        'mlid' => $result->mlid,
-        'date' => format_date(timefloor($result->starttime)),
-        'duration' => format_interval(timefloor($result->duration), 2),
-        'created' => $result->created,
-        'updated' => $result->updated,
-        'failed' => $result->failed,
-        'orphaned' => $result->orphaned,
-        'unchanged' => $result->unchanged,
-      ),
-      'class' => array('harvest-event'),
-    );
-
-    $rows[] = $row;
-  }
-
 
   // Return properly styled output.
   $build['pager_table'] = array(
@@ -170,6 +130,86 @@ function dkan_harvest_page_event_log($node) {
   $build['pager_pager'] = array('#theme' => 'pager');
 
   return $build;
+}
+
+/**
+ * Display a node's preview migration.
+ *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return A themed table with a migration preview.
+ */
+function dkan_harvest_page_preview($node) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
+  $output = '';
+
+  // Get the cache callback for the source.
+  // This will run a cache operation for the harvest source. Download the file and processed and create cache directory
+    $harvestCache = call_user_func(
+      $harvestSource->type->cache_callback,
+      $harvestSource,
+      NULL
+    );
+
+  foreach ($harvestCache->getProcessed() as $id => $dataset_item) {
+    $rows[] = array($id, $dataset_item['title']);
+  }
+
+  $form_import = drupal_get_form('dkan_harvest_form_import_preview', $node);
+  $caption = t('Harvesting from this source as it is currently configured will import the datasets listed below into this data portal. Click "Edit" above to change the source\'s configuration, click the "Harvest now" button at the bottom of the page to run the harvest immediately, or simply continue working and the harvest will be performed on schedule.');
+  $header = array(t('Identifier'), t('Title'));
+  $output .= theme('table', array('rows' => $rows, 'header' => $header, 'caption' => $caption));
+  $output .= drupal_render($form_import);
+  return $output;
+}
+
+function dkan_harvest_form_import_preview($form, &$form_state, $node) {
+  $form = array();
+  $form['#node'] = $node;
+
+  $form['import'] = array(
+    '#type' => 'submit',
+    '#value' => t('Harvest now'),
+  );
+
+  return $form;
+}
+
+function dkan_harvest_form_import_preview_submit($form, &$form_state) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($form['#node']);
+  dkan_harvest_cache_sources(array($harvestSource));
+  dkan_harvest_migrate_sources(array($harvestSource));
+  $form_state['redirect'] = 'admin/dkan/harvest/dashboard';
+}
+
+/**
+ * Get the last event log from a harvest source node.
+ *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return a date.
+ */
+function dkan_harvest_get_last_event_log($node) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
+  $harvestSourceMigration = dkan_harvest_get_migration($harvestSource);
+  $logTable = $harvestSourceMigration->getMap()->getLogTable();
+
+  $query = db_select('migrate_log', 'log');
+
+  $query->join($logTable, 'harvest_source_log', 'log.mlid = harvest_source_log.mlid');
+
+  $query_result = $query
+    ->fields('log')
+    ->fields('harvest_source_log')
+    ->condition('machine_name', $harvestSource->getMigrationMachineName())
+    ->orderBy('log.starttime', 'DESC');
+
+  $query->addExpression('log.endtime - log.starttime', 'duration');
+
+  $result = $query->execute()->fetchObject();
+  $time = floor($result->starttime/1000);
+  return format_date($time);
+
 }
 
 /**
@@ -684,6 +724,18 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
     $field_desc = $form['field_dkan_harvest_defaults'][$language]['#description'];
     $form['field_dkan_harvest_defaults'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
     $form['field_dkan_harvest_defaults'][$language]['#description'] = '';
+
+    //Add redirect to tab preview after save.
+    $form['actions']['submit']['#submit'][] = 'dkan_harvest_node_save_redirect_submit';
   }
 }
 
+/**
+ * A function that is called when a node is saved.
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function dkan_harvest_node_save_redirect_submit($form, &$form_state) {
+  $form_state['redirect'] = 'node/' . $form_state['nid'] . '/harvest-preview';
+}

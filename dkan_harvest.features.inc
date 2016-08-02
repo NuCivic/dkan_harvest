@@ -31,7 +31,7 @@ function dkan_harvest_node_info() {
     'harvest_source' => array(
       'name' => t('Harvest Source'),
       'base' => 'node_content',
-      'description' => '',
+      'description' => t('Source for harvesting datasets from an external source into DKAN. For instance, another data portal’s data.json file could be set to harvest once a day and add all the datasets returned to your catalog.'),
       'has_title' => '1',
       'title_label' => t('Title'),
       'help' => '',
