@@ -243,6 +243,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationOld = dkan_harvest_get_migration(self::getOriginalTestSource());
     $migrationOldMap = $this->getMapTableFromMigration($migrationOld);
     $migrationOldLog = $this->getLogTableFromMigration($migrationOld);
+    $migrationOldMessage = $this->getMessageTableFromMigration($migrationOld);
     $globalDatasetCountOld = $this->getGlobalNodeCount();
 
     // We track the last time a record (ie. a dataset) is updated by a
@@ -260,6 +261,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationAlternative = dkan_harvest_get_migration(self::getAlternativeTestSource());
     $migrationAlternativeMap = $this->getMapTableFromMigration($migrationAlternative);
     $migrationAlternativeLog = $this->getLogTableFromMigration($migrationAlternative);
+    $migrationAlternativeMessage = $this->getMessageTableFromMigration($migrationAlternative);
 
     // Get the map table post alternative source harvest.
     $migrationAlternativeMap = $this->getMapTableFromMigration($migrationAlternative);
@@ -304,6 +306,13 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       $this->assertEquals($migrationOldLogLast->{$property},
         $migrationAlternativeLogLast->{$property});
     }
+
+    /**
+     * Test message table.
+     */
+    // We don't expect any new messages from this test. The old and new message
+    // table should be the same.
+    $this->assertEquals($migrationOldMessage, $migrationAlternativeMessage);
   }
 
   /**
@@ -320,6 +329,8 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationOld = dkan_harvest_get_migration(self::getOriginalTestSource());
     $migrationOldMap = $this->getMapTableFromMigration($migrationOld);
     $migrationOldLog = $this->getLogTableFromMigration($migrationOld);
+    $migrationOldMessage = $this->getMessageTableFromMigration($migrationOld);
+
     $globalDatasetCountOld = $this->getGlobalNodeCount();
 
     // We track the last time a record (ie. a dataset) is updated by a
@@ -337,6 +348,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
     $migrationErrorMap = $this->getMapTableFromMigration($migrationError);
     $migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    $migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
 
     // Get the map table post error source harvest.
     $migrationErrorMap = $this->getMapTableFromMigration($migrationError);
@@ -382,6 +394,24 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       $this->assertEquals($migrationOldLogLast->{$property},
         $migrationErrorLogLast->{$property});
     }
+
+    /**
+     * Test message table.
+     */
+    // AFter harvesting a erroneous source, it is expected to have an error logged
+    // into the messsage table.
+    $this->assertNotEquals($migrationOldMessage, $migrationErrorMessage);
+    // We should at least have one more message.
+    $this->assertGreaterThan(count($migrationOldMessage),
+      count($migrationErrorMessage));
+
+    // Get the new messages. One of them should be an error message.
+    $messages_diff = array_diff_key($migrationErrorMessage, $migrationOldMessage);
+    $errors_level = array();
+    foreach ($messages_diff as $msgid => $message) {
+      $errors_level[] = $message->level;
+    }
+    $this->assertContains(Migration::MESSAGE_ERROR, $errors_level);
   }
 
   /**
@@ -398,6 +428,8 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationOld = dkan_harvest_get_migration(self::getOriginalTestSource());
     $migrationOldMap = $this->getMapTableFromMigration($migrationOld);
     $migrationOldLog = $this->getLogTableFromMigration($migrationOld);
+    $migrationOldMessage = $this->getMessageTableFromMigration($migrationOld);
+
     $globalDatasetCountOld = $this->getGlobalNodeCount();
 
     // We track the last time a record (ie. a dataset) is updated by a
@@ -415,6 +447,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationEmpty = dkan_harvest_get_migration(self::getEmptyTestSource());
     $migrationEmptyMap = $this->getMapTableFromMigration($migrationEmpty);
     $migrationEmptyLog = $this->getLogTableFromMigration($migrationEmpty);
+    $migrationEmptyMessage = $this->getMessageTableFromMigration($migrationEmpty);
 
     // Get the map table post empty source harvest.
     $migrationEmptyMap = $this->getMapTableFromMigration($migrationEmpty);
@@ -461,6 +494,13 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       $this->assertEquals($migrationOldLogLast->{$property},
         $migrationEmptyLogLast->{$property});
     }
+
+    /**
+     * Test message table.
+     */
+    // We don't expect any new messages from this test. The old and new message
+    // table should be the same.
+    $this->assertEquals($migrationOldMessage, $migrationEmptyMessage);
   }
 
   /**
@@ -470,7 +510,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    */
   public function testHarvestSourceZombi() {
 
-    //
+    // Clean the harvest migration data from the source.
     dkan_harvest_rollback_sources(array(self::getErrorTestSource()));
     dkan_harvest_deregister_sources(array(self::getErrorTestSource()));
 
@@ -481,7 +521,19 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
     $migrationErrorMap = $this->getMapTableFromMigration($migrationError);
     $migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    $migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    $migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
 
+
+    // Harvest the faulty source.
+    dkan_harvest_cache_sources(array(self::getErrorTestSource()));
+    dkan_harvest_migrate_sources(array(self::getErrorTestSource()));
+
+    //$migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
+    //$migrationErrorMap = $this->getMapTableFromMigration($migrationError);
+    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    //$migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
 
     // Harvest the empty source.
     dkan_harvest_cache_sources(array(self::getEmptyTestSource()));
@@ -490,9 +542,64 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationEmpty = dkan_harvest_get_migration(self::getEmptyTestSource());
     $migrationEmptyMap = $this->getMapTableFromMigration($migrationEmpty);
     $migrationEmptyLog = $this->getLogTableFromMigration($migrationEmpty);
+    $migrationEmptyMessage = $this->getMessageTableFromMigration($migrationEmpty);
 
     $values = $migrationEmpty->getMap()->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, NULL, NULL, NULL, NULL);
     $this->assertEmpty($migrationEmptyMap);
+
+    /**
+     * Test message table.
+     */
+    // We don't expect any new messages from this test. The old and new message
+    // table should be the same.
+    $this->assertEquals($migrationErrorMessage, $migrationEmptyMessage);
+  }
+
+  /**
+   * Make sure that the harvest migration does not remove old log messages after
+   * every harvest.
+   */
+  public function testHarvestSourceMessagesAppend() {
+
+    // Clean the harvest migration data from the source.
+    dkan_harvest_rollback_sources(array(self::getErrorTestSource()));
+    dkan_harvest_deregister_sources(array(self::getErrorTestSource()));
+
+    // Harvest the faulty source.
+    dkan_harvest_cache_sources(array(self::getErrorTestSource()));
+    dkan_harvest_migrate_sources(array(self::getErrorTestSource()));
+
+    $migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
+    //$migrationErrorMap = $this->getMapTableFromMigration($migrationError);
+    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
+    $migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
+
+    // Now that we have error messages, re-harvest the faulty source to get new
+    // messages for the same dataset sources. To force harvest migration to
+    // re-harvest an unchanged source we pass the 'dkan_harvest_skip_hash'
+    // option.
+    $options = array(
+      'dkan_harvest_skip_hash' => TRUE,
+    );
+    dkan_harvest_cache_sources(array(self::getErrorTestSource()));
+    dkan_harvest_migrate_sources(array(self::getErrorTestSource()), $options);
+
+    $migrationErrorAfter = dkan_harvest_get_migration(self::getErrorTestSource());
+    //$migrationErrorAfterMap = $this->getMapTableFromMigration($migrationError);
+    //$migrationErrorAfterLog = $this->getLogTableFromMigration($migrationError);
+    //$migrationErrorAfterLog = $this->getLogTableFromMigration($migrationError);
+    $migrationErrorAfterMessage = $this->getMessageTableFromMigration($migrationError);
+
+    /**
+     * Test message table.
+     */
+    // We don't expect any new messages from this test. The old and new message
+    // table should be the same.
+    $this->assertNotEquals($migrationErrorMessage, $migrationErrorAfterMessage);
+    // We should record the same errors. So if the first harvest yelded 2
+    // errors the second one should have 4.
+    $this->assertEquals(count($migrationErrorMessage) * 2, count($migrationErrorAfterMessage));
   }
 
   /**
@@ -585,6 +692,24 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
       ->execute();
 
     return $result->fetchAllAssoc('sourceid1');
+  }
+
+  /**
+   * Helper method to get a harvest migration map table from the harvest
+   * migration.
+   *
+   * @param HarvestMigration $migration
+   *
+   * @return Array of records of the harvest source migration map table keyed
+   * by destid1.
+   */
+  private function getMessageTableFromMigration(HarvestMigration $migration) {
+    $map = $migration->getMap();
+    $result = $map->getConnection()->select($map->getMessageTable(), 'message')
+      ->fields('message')
+      ->execute();
+
+    return $result->fetchAllAssoc('msgid');
   }
 
   /**
