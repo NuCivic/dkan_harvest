@@ -59,6 +59,7 @@ features[views_view][] = dkan_harvest_source_search
 features_exclude[dependencies][dkan_harvest] = dkan_harvest
 features_exclude[dependencies][entityreference] = entityreference
 files[] = dkan_harvest.migrate.inc
+files[] = dkan_harvest.pages.inc
 files[] = includes/HarvestSource.php
 files[] = includes/HarvestSourceType.php
 files[] = includes/HarvestList.php

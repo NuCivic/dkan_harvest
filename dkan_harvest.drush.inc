@@ -103,7 +103,7 @@ function dkan_harvest_drush_command_harvest($source_machine_name) {
  */
 function dkan_harvest_drush_command_cache($source_machine_name) {
   if (isset($source_machine_name)) {
-    if ($source = HarvestSource::getSourceByMachineName($source_machine_name)) {
+    if ($source = new HarvestSource($source_machine_name)) {
       drush_log("Running the harvest migration on " . $source_machine_name, 'notice');
       return dkan_harvest_cache_sources(array($source), microtime());
     } else {
@@ -129,7 +129,7 @@ function dkan_harvest_drush_command_migrate($source_machine_name) {
   );
 
   if (isset($source_machine_name)) {
-    if ($source = HarvestSource::getSourceByMachineName($source_machine_name)) {
+    if ($source = new HarvestSource($source_machine_name)) {
       drush_log("Running the harvest migration on " . $source_machine_name, 'notice');
       dkan_harvest_migrate_sources(array($source), $options);
     }
@@ -162,7 +162,7 @@ function dkan_harvest_drush_command_rollback($source_machine_name) {
     return FALSE;
   }
 
-  $source = HarvestSource::getSourceByMachineName($source_machine_name);
+  $source = new HarvestSource($source_machine_name);
   if (!$source) {
     $message = t("No source with machine name %source_machine_name found.",
       array(
@@ -225,7 +225,7 @@ function dkan_harvest_drush_command_deregister($source_machine_name) {
     return FALSE;
   }
 
-  $harvestSource = HarvestSource::getSourceByMachineName($source_machine_name);
+  $harvestSource = new HarvestSource($source_machine_name);
 
   if (!$harvestSource) {
     drush_log(t("Harvest Source not found!"), 'error');

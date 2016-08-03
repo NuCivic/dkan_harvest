@@ -5,6 +5,10 @@
  * Base Harvest Migration classes.
  */
 
+// This used to exits in file.inc but was removed on Drupal 7 without a
+// replacement.
+define('FILE_STATUS_TEMPORARY', 0);
+
 /**
  * Base Class for harvest migration.
  */
@@ -76,6 +80,9 @@ class HarvestMigration extends MigrateDKAN {
     $this->dkanHarvestMigrateSQLMapConnectionKey = 'default';
     $this->dkanHarvestMigrateSQLMapSourceOptions = array(
       'track_last_imported' => TRUE,
+      // This is added to avoid migrate deleting old message logs. Need
+      // https://www.drupal.org/files/migrate-append-map-messages-1989492-2.patch
+      'append_messages' => TRUE,
     );
 
     $this->map = new HarvestMigrateSQLMap(
@@ -110,8 +117,16 @@ class HarvestMigration extends MigrateDKAN {
       self::displayMessage($message, 'error');
     }
 
-    $harvest_source_nids = array_keys($result['node']);
-    $this->dkanHarvestSourceNid = array_pop($harvest_source_nids);
+    // This should be set when running the harvest with a harvest source node. Add
+    // a check to support the phpunit tests that run from nodeless harvest source
+    // object.
+    if (isset($result['node'])) {
+      $harvest_source_nids = array_keys($result['node']);
+      $this->dkanHarvestSourceNid = array_pop($harvest_source_nids);
+    }
+    else {
+      $this->dkanHarvestSourceNid = FALSE;
+    }
 
     // Add Field mappings.
     $this->setFieldMappings();
@@ -195,7 +210,6 @@ class HarvestMigration extends MigrateDKAN {
    */
   public function prepareRow($row) {
     parent::prepareRow($row);
-    $row->migrate_map_dkan_harvest_object_id = $this->dkanHarvestSource->machine_name;
     $this->idListImported[] = $row->dkan_harvest_object_id;
   }
 
@@ -420,9 +434,21 @@ class HarvestMigration extends MigrateDKAN {
   public function postImport() {
     parent::postImport();
 
-    // Clean up any previously failed entries that does not have any
-    // destination dataset and that are missing from the processed list.
-    $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, $this->idListImported, "NOT IN", NULL, NULL);
+    //Check if sourceCount is 0.
+    // Show and add an error to the message table.
+    if ($this->sourceCount() == 0) {
+      $message = t('Items to import is 0. Looks like source is missing. All the'
+        . 'content previously harvested will be unpublished.');
+      self::displayMessage($message, 'error');
+      $this->saveMessage($message);
+    }
+
+    // Zombie entries are datasets that failed to import during a previous
+    // harvest migration and does not have any destination node and during the
+    // current harvest they are missing from the source as well.
+    // Look for those zombie dataset and clean them.
+    $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED,
+      $this->idListImported, "NOT IN", NULL, NULL);
 
     if (!empty($zombies)) {
       $zombies_sourceids = array();
@@ -430,7 +456,9 @@ class HarvestMigration extends MigrateDKAN {
         array_push($zombies_sourceids, $zombie->sourceid1);
       }
       $this->displayMessage(t('Deleting previously failed imports that does not exist in the harvest source anymore.'));
-      $this->getMap()->deleteBulk($zombies_sourceids);
+      // Delete the map entry of the zombie dataset. Keep the message for
+      // historical log.
+      $this->getMap()->deleteBulkFromMap($zombies_sourceids);
     }
 
     // We need the postImportRestoredSource() call to be before the
@@ -982,13 +1010,6 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
-   * Getter for harvest source. This is mainly used for unittests.
-   */
-  public function getHarvestSource() {
-    return $this->dkanHarvestSource;
-  }
-
-  /**
    * {@inheritdoc}
    *
    * Change the default to not warn as overriding field mapping is common
@@ -998,6 +1019,48 @@ class HarvestMigration extends MigrateDKAN {
     $warn_on_override = FALSE) {
     return parent::addFieldMapping($destination_field, $source_field,
       $warn_on_override);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Add support for the $mlid column.
+   */
+  public function queueMessage($message, $level = MigrationBase::MESSAGE_ERROR, $mlid = FALSE) {
+    // Use the default $mlid if not available.
+    if (!$mlid) {
+      $mlid = $this->getLogID();
+    }
+
+    $this->queuedMessages[] = array(
+      'message' => $message,
+      'level' => $level,
+      'mlid' => $mlid,
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Add support for the $mlid column.
+   */
+  public function saveMessage($message, $level = MigrationBase::MESSAGE_ERROR, $mlid = FALSE) {
+    $this->map->saveMessage($this->currentSourceKey(), $message, $level, $mlid);
+  }
+
+  /**
+   * Getter for harvest source. This is mainly used for unittests.
+   */
+  public function getHarvestSource() {
+    return $this->dkanHarvestSource;
+  }
+
+  /**
+   * Getter for the $logID variable. Mainly used for the HarvestMigrateSQLMap
+   * class.
+   */
+  public function getLogID() {
+    return $this->logID;
   }
 }
 

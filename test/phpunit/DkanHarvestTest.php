@@ -5,6 +5,11 @@
  * Base phpunit tests for dkan_harvest module.
  */
 
+include_once __DIR__ . '/includes/HarvestSourceTestStub.php';
+
+/**
+ *
+ */
 class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
   // dkan_harvest_test status.
   public static $dkanHarvestTestBeforClassStatus = TRUE;
@@ -14,26 +19,20 @@ class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
    */
   public static function getTestSources() {
     return array(
-      'harvest_test_source_local_dir' => new HarvestSource(
-        'harvest_test_source_local_dir', array (
-          'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-          "/test/data/harvest_test_source_local_dir/",
-          'type' => 'harvest_test_type',
-          'label' => 'Dkan Harvest Test Source',
-        )),
-      'harvest_test_source_local_file' => new HarvestSource(
-        'harvest_test_source_local_file', array (
-          'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-          "/test/data/harvest_test_source_local_file/data.json",
-          'type' => 'harvest_test_type',
-          'label' => 'Dkan Harvest Test Source',
-        )),
-     'harvest_test_source_remote' => new HarvestSource(
-       'harvest_test_source_remote', array (
-         'uri' => 'https://data.mo.gov/data.json',
-         'type' => 'harvest_test_type',
-         'label' => 'Dkan Harvest Test Source',
-       )),
+      'harvest_test_source_local_dir' => new HarvestSourceTestStub(
+        'harvest_test_source_local_dir',
+        DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
+        "/test/data/harvest_test_source_local_dir/"
+      ),
+      'harvest_test_source_local_file' => new HarvestSourceTestStub(
+        'harvest_test_source_local_file',
+        DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
+        "/test/data/harvest_test_source_local_file/data.json"
+      ),
+      'harvest_test_source_remote' => new HarvestSourceTestStub(
+        'harvest_test_source_remote',
+        'https://data.mo.gov/data.json'
+      ),
     );
   }
 
