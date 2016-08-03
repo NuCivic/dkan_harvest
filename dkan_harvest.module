@@ -110,8 +110,20 @@ function dkan_harvest_page_event_log($node) {
     return floor($microtime/1000);
   }
 
-  // Build the table rows.
   $rows = array();
+
+  foreach($results as $log) {
+    $rows[] = array(
+      array('data' => $log->mlid),
+      array('data' => $log->starttime),
+      array('data' => $log->duration),
+      array('data' => $log->created),
+      array('data' => $log->updated),
+      array('data' => $log->failed),
+      array('data' => $log->orphaned),
+      array('data' => $log->unchanged),
+    );
+  }
 
   // Return properly styled output.
   $build['pager_table'] = array(
