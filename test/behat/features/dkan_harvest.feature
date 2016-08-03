@@ -67,8 +67,8 @@ Feature: Dkan Harvest
   Then I should see the link "Wisconsin Polling Places"
   And I click "Wisconsin Polling Places"
   And I should see the text "Harvested from Source one"
-  And I should see the text "Harvest Object Id"
-  And I should see the text "Harvest Source Id"
+  And I should see the text "Last Harvest Performed"
+  And I should see the text "Harvest Source URI"
   And I should see the text "Harvest Source Title"
 
 
