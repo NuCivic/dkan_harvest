@@ -172,7 +172,8 @@ class HarvestSource {
    * @throws Exception if HarvestSource creation fail.
    */
   public static function getHarvestSourceFromNode(stdClass $harvest_source_node) {
-    return new HarvestSource($harvest_source_node->field_dkan_harvest_machine_name[LANGUAGE_NONE][0]['machine']);
+    $harvest_source_node_emw = entity_metadata_wrapper('node', $harvest_source_node);
+    return new HarvestSource($harvest_source_node_emw->field_dkan_harvest_machine_name->machine->value());
   }
 
   /**

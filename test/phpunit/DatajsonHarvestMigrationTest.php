@@ -524,16 +524,9 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     $migrationErrorLog = $this->getLogTableFromMigration($migrationError);
     $migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
 
-
     // Harvest the faulty source.
     dkan_harvest_cache_sources(array(self::getErrorTestSource()));
     dkan_harvest_migrate_sources(array(self::getErrorTestSource()));
-
-    //$migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
-    //$migrationErrorMap = $this->getMapTableFromMigration($migrationError);
-    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
-    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
-    //$migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
 
     // Harvest the empty source.
     dkan_harvest_cache_sources(array(self::getEmptyTestSource()));
@@ -570,9 +563,6 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     dkan_harvest_migrate_sources(array(self::getErrorTestSource()));
 
     $migrationError = dkan_harvest_get_migration(self::getErrorTestSource());
-    //$migrationErrorMap = $this->getMapTableFromMigration($migrationError);
-    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
-    //$migrationErrorLog = $this->getLogTableFromMigration($migrationError);
     $migrationErrorMessage = $this->getMessageTableFromMigration($migrationError);
 
     // Now that we have error messages, re-harvest the faulty source to get new
@@ -586,9 +576,6 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     dkan_harvest_migrate_sources(array(self::getErrorTestSource()), $options);
 
     $migrationErrorAfter = dkan_harvest_get_migration(self::getErrorTestSource());
-    //$migrationErrorAfterMap = $this->getMapTableFromMigration($migrationError);
-    //$migrationErrorAfterLog = $this->getLogTableFromMigration($migrationError);
-    //$migrationErrorAfterLog = $this->getLogTableFromMigration($migrationError);
     $migrationErrorAfterMessage = $this->getMessageTableFromMigration($migrationError);
 
     /**

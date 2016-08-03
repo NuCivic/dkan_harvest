@@ -52,7 +52,6 @@ function dkan_harvest_page_error_log_access($node) {
 
   // If the user can update the harvest node. Grant her/him access to the event
   // log.
-  //return node_access('view', $node);
   return node_access('update', $node);
 }
 
