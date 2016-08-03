@@ -18,44 +18,6 @@ define(
 );
 
 /**
- * Determines whether the current user may access the harvest source event log
- * page.
- *
- * @param $node The harvest source node being acted upon.
- *
- * @return TRUE if access is granted. Otherwise FALSE.
- */
-function dkan_harvest_page_event_log_access($node) {
-  // Only available for harves source type nodes.
-  if ($node->type != 'harvest_source') {
-    return FALSE;
-  }
-
-  // If the user can update the harvest node. Grant her/him access to the event
-  // log.
-  return node_access('update', $node);
-}
-
-/**
- * Determines whether the current user may access the harvest source event log
- * page.
- *
- * @param $node The harvest source node being acted upon.
- *
- * @return TRUE if access is granted. Otherwise FALSE.
- */
-function dkan_harvest_page_error_log_access($node) {
-  // Only available for harves source type nodes.
-  if ($node->type != 'harvest_source') {
-    return FALSE;
-  }
-
-  // If the user can update the harvest node. Grant her/him access to the event
-  // log.
-  return node_access('update', $node);
-}
-
-/**
  * Implements hook_menu().
  */
 function dkan_harvest_menu() {
@@ -66,7 +28,7 @@ function dkan_harvest_menu() {
     'title' => t('Event'),
     'page callback' => 'dkan_harvest_page_event_log',
     'page arguments' => array(1),
-    'access callback' => 'dkan_harvest_page_event_log_access',
+    'access callback' => 'dkan_harvest_page_tab_access',
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dkan_harvest.pages.inc',
@@ -77,7 +39,18 @@ function dkan_harvest_menu() {
     'title' => t('Error'),
     'page callback' => 'dkan_harvest_page_error_log',
     'page arguments' => array(1),
-    'access callback' => 'dkan_harvest_page_error_log_access',
+    'access callback' => 'dkan_harvest_page_tab_access',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'dkan_harvest.pages.inc',
+    'weight' => $weight++,
+  );
+
+  $items['node/%node/harvest-preview'] = array(
+    'title' => 'Preview',
+    'page callback' => 'dkan_harvest_page_preview',
+    'page arguments' => array(1),
+    'access callback' => 'dkan_harvest_page_tab_access',
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dkan_harvest.pages.inc',
@@ -85,6 +58,75 @@ function dkan_harvest_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Determines whether the current user may access the harvest source event
+ * Error/Log/Preview pages.
+ *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return TRUE if access is granted. Otherwise FALSE.
+ */
+function dkan_harvest_page_tab_access($node) {
+  // Only available for harves source type nodes.
+  if ($node->type != 'harvest_source') {
+    return FALSE;
+  }
+
+  // If the user can update the harvest node. Grant her/him access to the event
+  // log.
+  return node_access('update', $node);
+}
+
+/**
+ * Display a node's preview migration.
+ *
+ * @param $node The harvest source node being acted upon.
+ *
+ * @return A themed table with a migration preview.
+ */
+function dkan_harvest_page_preview($node) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
+  $output = '';
+
+  // Get the cache callback for the source.
+  // This will run a cache operation for the harvest source. Download the file and processed and create cache directory
+    $harvestCache = call_user_func(
+      $harvestSource->type->cache_callback,
+      $harvestSource,
+      NULL
+    );
+
+  foreach ($harvestCache->getProcessed() as $id => $dataset_item) {
+    $rows[] = array($id, $dataset_item['title']);
+  }
+
+  $form_import = drupal_get_form('dkan_harvest_harvest_now_form', $node);
+  $caption = t('Harvesting from this source as it is currently configured will import the datasets listed below into this data portal. Click "Edit" above to change the source\'s configuration, click the "Harvest now" button at the bottom of the page to run the harvest immediately, or simply continue working and the harvest will be performed on schedule.');
+  $header = array(t('Identifier'), t('Title'));
+  $output .= theme('table', array('rows' => $rows, 'header' => $header, 'caption' => $caption));
+  $output .= drupal_render($form_import);
+  return $output;
+}
+
+function dkan_harvest_harvest_now_form($form, &$form_state, $node) {
+  $form = array();
+  $form['#node'] = $node;
+
+  $form['import'] = array(
+    '#type' => 'submit',
+    '#value' => t('Harvest now'),
+  );
+
+  return $form;
+}
+
+function dkan_harvest_harvest_now_form_submit($form, &$form_state) {
+  $harvestSource = HarvestSource::getHarvestSourceFromNode($form['#node']);
+  dkan_harvest_cache_sources(array($harvestSource));
+  dkan_harvest_migrate_sources(array($harvestSource));
+  $form_state['redirect'] = 'admin/dkan/harvest/dashboard';
 }
 
 /**
@@ -581,7 +623,7 @@ function dkan_harvest_node_view($node, $view_mode, $langcode) {
   if ($node->type == 'dataset' && $view_mode == 'full') {
     if (isset($node->field_harvest_source_ref) && isset($node->field_harvest_source_ref[LANGUAGE_NONE][0]['target_id'])) {
       $harvest_node = node_load($node->field_harvest_source_ref[LANGUAGE_NONE][0]['target_id']);
-      $link = '<div class"field">' . t('Source: !link', array('!link' => l($harvest_node->title, $harvest_node->field_dkan_harvest_source_uri[LANGUAGE_NONE][0]['value']))) . '</div>';
+      $link = '<div class"field">' . t('Source: !link', array('!link' => l($harvest_node->title, 'node/' . $harvest_node->nid))) . '</div>';
       $node->content['harvest'] = array(
         '#markup' => $link,
         '#weight' => 1,
@@ -629,6 +671,18 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
     $field_desc = $form['field_dkan_harvest_defaults'][$language]['#description'];
     $form['field_dkan_harvest_defaults'][$language]['#title'] .= '<div class="description">' . $field_desc . '</div>';
     $form['field_dkan_harvest_defaults'][$language]['#description'] = '';
+
+    //Add redirect to tab preview after save.
+    $form['actions']['submit']['#submit'][] = 'dkan_harvest_node_save_redirect_submit';
   }
 }
 
+/**
+ * A function that is called when a node is saved.
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function dkan_harvest_node_save_redirect_submit($form, &$form_state) {
+  $form_state['redirect'] = 'node/' . $form_state['nid'] . '/harvest-preview';
+}
