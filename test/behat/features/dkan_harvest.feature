@@ -100,8 +100,8 @@ Feature: Dkan Harvest
   And I am logged in as a "<role>"
   And I am on the "Source one" page
   Given The "source_one" source is harvested
-  Then I should see the link "Event Log"
-  When I click "Event Log"
+  Then I should see the link "Event"
+  When I click "Event"
   Then The page status should be 'ok'
   And I should see a table with a class name "harvest-event-log"
   And the table with the class name "harvest-event-log" should have 1 row
