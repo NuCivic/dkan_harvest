@@ -11,6 +11,7 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
    * Codes reflecting the orphaned status of a map row.
    */
   const STATUS_IGNORED_NO_SOURCE = 20;
+  const SOURCEID1_EMPTY = 'N/A';
 
   /**
    * Names of tables created for tracking the migration.
@@ -331,27 +332,20 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
       $fields['mlid'] = $mlid;
     }
 
-    // Source IDs as arguments
-    $count = 1;
-    if (is_array($source_key)) {
-      foreach ($source_key as $key_value) {
-        $fields['sourceid' . $count++] = $key_value;
-        // If any key value is empty, we can't save - print out and abort
-        if (empty($key_value)) {
-          print($message);
-          return;
-        }
-      }
-      $fields['level'] = $level;
-      $fields['message'] = $message;
-      $this->connection->insert($this->messageTable)
-        ->fields($fields)
-        ->execute();
+    // Only support single sourceid, we don't currently need the multip
+    // sourceid. Alse allow null sourceid for global messages like the "source
+    // is empty" message.
+    if (isset($source_key)) {
+      $fields['sourceid1'] = $source_key;
     }
     else {
-      // TODO: What else can we do?
-      Migration::displayMessage($message);
+      $fields['sourceid1'] = self::SOURCEID1_EMPTY;
     }
+    $fields['level'] = $level;
+    $fields['message'] = $message;
+    $this->connection->insert($this->messageTable)
+      ->fields($fields)
+      ->execute();
   }
 
   /**

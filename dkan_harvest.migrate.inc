@@ -5,6 +5,10 @@
  * Base Harvest Migration classes.
  */
 
+// This used to exits in file.inc but was removed on Drupal 7 without a
+// replacement.
+define('FILE_STATUS_TEMPORARY', 0);
+
 /**
  * Base Class for harvest migration.
  */
@@ -430,12 +434,21 @@ class HarvestMigration extends MigrateDKAN {
   public function postImport() {
     parent::postImport();
 
+    //Check if sourceCount is 0.
+    // Show and add an error to the message table.
+    if ($this->sourceCount() == 0) {
+      $message = t('Items to import is 0. Looks like source is missing. All the'
+        . 'content previously harvested will be unpublished.');
+      self::displayMessage($message, 'error');
+      $this->saveMessage($message);
+    }
+
     // Zombie entries are datasets that failed to import during a previous
     // harvest migration and does not have any destination node and during the
     // current harvest they are missing from the source as well.
-
     // Look for those zombie dataset and clean them.
-    $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED, $this->idListImported, "NOT IN", NULL, NULL);
+    $zombies = $this->map->lookupMapTable(HarvestMigrateSQLMap::STATUS_FAILED,
+      $this->idListImported, "NOT IN", NULL, NULL);
 
     if (!empty($zombies)) {
       $zombies_sourceids = array();
