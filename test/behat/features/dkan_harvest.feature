@@ -86,7 +86,7 @@ Feature: Dkan Harvest
   When I am on the "Source one" page
   Then I should see the link "Preview"
   And I click "Preview"
-  And I should see the link "Import/Process information"
+  And I should see the link "Harvest Now"
   And I should see the text "Wisconsin Polling Places"
 
   @api
