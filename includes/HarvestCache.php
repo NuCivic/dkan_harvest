@@ -62,7 +62,7 @@ class HarvestCache {
   public function getFailed() {
     return array_filter($this->processed,
       function ($processed_flag) {
-        return ($processed_flag & self::DKAN_HARVEST_CACHE_FAILED);
+        return ($processed_flag['flag'] & self::DKAN_HARVEST_CACHE_FAILED);
     });
   }
 
@@ -79,7 +79,7 @@ class HarvestCache {
   public function getFiltered() {
     return array_filter($this->processed,
       function ($processed_flag) {
-        return ($processed_flag & self::DKAN_HARVEST_CACHE_FILTERED);
+        return ($processed_flag['flag'] & self::DKAN_HARVEST_CACHE_FILTERED);
     });
   }
 
@@ -96,7 +96,7 @@ class HarvestCache {
   public function getExcluded() {
     return array_filter($this->processed,
       function ($processed_flag) {
-        return ($processed_flag & self::DKAN_HARVEST_CACHE_EXCLUDED);
+        return ($processed_flag['flag'] & self::DKAN_HARVEST_CACHE_EXCLUDED);
     });
   }
 
@@ -113,7 +113,7 @@ class HarvestCache {
   public function getDefaulted() {
     return array_filter($this->getSaved(),
       function ($processed_flag) {
-        return ($processed_flag & self::DKAN_HARVEST_CACHE_DEFAULTED);
+        return ($processed_flag['flag'] & self::DKAN_HARVEST_CACHE_DEFAULTED);
     });
   }
 
@@ -129,7 +129,7 @@ class HarvestCache {
   public function getOverridden() {
     return array_filter($this->getSaved(),
       function ($processed_flag) {
-        return ($processed_flag & self::DKAN_HARVEST_CACHE_OVERRIDDEN);
+        return ($processed_flag['flag'] & self::DKAN_HARVEST_CACHE_OVERRIDDEN);
     });
   }
 
@@ -156,7 +156,7 @@ class HarvestCache {
     // excluded or failed.
     return array_filter($base,
       function ($base_flag) {
-        return !($base_flag & (self::DKAN_HARVEST_CACHE_EXCLUDED | self::DKAN_HARVEST_CACHE_FAILED));
+        return !($base_flag['flag'] & (self::DKAN_HARVEST_CACHE_EXCLUDED | self::DKAN_HARVEST_CACHE_FAILED));
     });
   }
 
@@ -174,18 +174,19 @@ class HarvestCache {
    * @param $cache_id
    * @param $flag
    */
-  public function setCacheEntry($cache_id, $flag) {
+  public function setCacheEntry($cache_id, $flag, $title) {
     if (!isset($this->processed[$cache_id])) {
-      $this->processed[$cache_id] = $flag;
+      $this->processed[$cache_id] = array('flag' => $flag, 'title' => $title);
     }
     else {
+      $this->processed[$cache_id]['title'] = $title;
       if ($flag == self::DKAN_HARVEST_CACHE_PROCESSED) {
         // Processed means no failure. So we make sure that the failed flag is
         // removed.
-        $this->processed[$cache_id] &= ~(self::DKAN_HARVEST_CACHE_FAILED);
+        $this->processed[$cache_id]['flag'] &= ~(self::DKAN_HARVEST_CACHE_FAILED);
       }
       else {
-        $this->processed[$cache_id] = $this->processed[$cache_id] | $flag;
+        $this->processed[$cache_id]['flag'] = $this->processed[$cache_id] | $flag;
       }
     }
   }
@@ -193,42 +194,42 @@ class HarvestCache {
   /**
    * Flag a element as processed.
    */
-  public function setCacheEntryProcessed($cache_id) {
-    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_PROCESSED);
+  public function setCacheEntryProcessed($cache_id, $title = NULL) {
+    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_PROCESSED, $title);
   }
 
   /**
    * Flag a element as failed.
    */
-  public function setCacheEntryFailed($cache_id) {
-    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_FAILED);
+  public function setCacheEntryFailed($cache_id, $title = NULL) {
+    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_FAILED, $title);
   }
 
   /**
    * Flag a element as filtered.
    */
-  public function setCacheEntryFiltered($cache_id) {
-    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_FILTERED);
+  public function setCacheEntryFiltered($cache_id, $title = NULL) {
+    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_FILTERED, $title);
   }
 
   /**
    * Flag a element as excluded.
    */
-  public function setCacheEntryExcluded($cache_id) {
-    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_EXCLUDED);
+  public function setCacheEntryExcluded($cache_id, $title = NULL) {
+    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_EXCLUDED, $title);
   }
 
   /**
    * Flag a element as defaulted.
    */
-  public function setCacheEntryDefaulted($cache_id) {
-    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_DEFAULTED);
+  public function setCacheEntryDefaulted($cache_id, $title = NULL) {
+    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_DEFAULTED, $title);
   }
 
   /**
    * Flag a element as overridden.
    */
-  public function setCacheEntryOverridden($cache_id) {
-    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_OVERRIDDEN);
+  public function setCacheEntryOverridden($cache_id, $title = NULL) {
+    $this->setCacheEntry($cache_id, self::DKAN_HARVEST_CACHE_OVERRIDDEN, $title);
   }
 }

@@ -611,21 +611,19 @@ function dkan_harvest_field_default_field_instances() {
   // Translatables
   // Included for use with string extractors like potx.
   t('Add one or more filters to narrow a harvest to a specific subset of fields and values.');
-  t('Choose items to exclude by providing their field and the value for that field.');
   t('Defaults');
+  t('Determine replacement field values that will be overwritten when you harvest.');
+  t('Exclude a specific field and value from your harvest. Using this will import all fields except the ones listed.');
   t('Excludes');
   t('Filters');
-  t('Harvest Source');
   t('Machine Name');
   t('Notes');
   t('Overrides');
+  t('Set a default value to be used when the specified field is empty.');
   t('Source URI');
   t('Type');
   t('Orphan');
   t('Type of source we are harvesting.');
-  t('Set a default value to be used when the specified field is empty.');
-  t('Exclude a specific field and value from your harvest. Using this will import all fields except the ones listed.');
-  t('Determine replacement field values that will be overwritten when you harvest.');
 
   return $field_instances;
 }
