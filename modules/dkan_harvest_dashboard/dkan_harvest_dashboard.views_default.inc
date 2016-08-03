@@ -37,6 +37,7 @@ function dkan_harvest_dashboard_views_default_views() {
     'field_dkan_harveset_type' => 'field_dkan_harveset_type',
     'dkan_harvest_harvest_date' => 'dkan_harvest_harvest_date',
     'dkan_harvest_harvest_count' => 'dkan_harvest_harvest_count',
+    'dkan_harvest_harvest_status' => 'dkan_harvest_harvest_status',
   );
   $handler->display->display_options['style_options']['default'] = '-1';
   $handler->display->display_options['style_options']['info'] = array(
@@ -67,6 +68,13 @@ function dkan_harvest_dashboard_views_default_views() {
       'empty_column' => 0,
     ),
     'dkan_harvest_harvest_count' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'dkan_harvest_harvest_status' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -129,6 +137,18 @@ function dkan_harvest_dashboard_views_default_views() {
   $handler->display->display_options['fields']['dkan_harvest_harvest_count']['table'] = 'dkan_harvest_dashboard';
   $handler->display->display_options['fields']['dkan_harvest_harvest_count']['field'] = 'dkan_harvest_harvest_count';
   $handler->display->display_options['fields']['dkan_harvest_harvest_count']['label'] = 'Datasets Count';
+  /* Field: Dkan Harvest: Harvest Migrate Status */
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['id'] = 'dkan_harvest_harvest_status';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['table'] = 'dkan_harvest_dashboard';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['field'] = 'dkan_harvest_harvest_status';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['label'] = 'Status';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['element_class'] = '[dkan_harvest_harvest_status]';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['element_label_colon'] = FALSE;
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['element_wrapper_class'] = '[dkan_harvest_harvest_status]';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['type'] = 'custom';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['type_custom_true'] = 'ERROR';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['type_custom_false'] = 'OK';
+  $handler->display->display_options['fields']['dkan_harvest_harvest_status']['not'] = 0;
   /* Filter criterion: Content: Published */
   $handler->display->display_options['filters']['status']['id'] = 'status';
   $handler->display->display_options['filters']['status']['table'] = 'node';
