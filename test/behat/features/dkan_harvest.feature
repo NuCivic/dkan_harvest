@@ -32,7 +32,7 @@ Feature: Dkan Harvest
     | role                    |
     | authenticated user      |
 
-  @api @harvest_rollback
+  @api @harvest_rollback @javascript
   Scenario: As an administrator I should see only the published harvest sources listed on the harvest dashboard.
 
   Given users:
