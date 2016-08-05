@@ -18,6 +18,17 @@ define(
 );
 
 /**
+ * Implements hook_permission().
+ */
+function dkan_harvest_permission() {
+  return array(
+    'admininster harvest' => array(
+      'title' => t('Administrate harvest sources and datasets'),
+    )
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function dkan_harvest_menu() {
