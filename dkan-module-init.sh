@@ -63,4 +63,3 @@ if [ -d "$DKAN_MODULE/modules" ]; then
 fi
 
 ahoy drush en $DKAN_MODULE $SUBMODULES -y
-ahoy drush -y en dkan_harvest_test
