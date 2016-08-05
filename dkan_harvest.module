@@ -85,9 +85,9 @@ function dkan_harvest_page_tab_access($node) {
     return FALSE;
   }
 
-  // If the user can update the harvest node. Grant her/him access to the event
-  // log.
-  return node_access('update', $node);
+  // If the user have the 'admininster harvest' permission, grant her/him
+  // access to the event log.
+  return user_access('admininster harvest');
 }
 
 /**
