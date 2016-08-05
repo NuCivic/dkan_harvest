@@ -2,22 +2,21 @@
 
 /**
  * @file
- * dkan_harvest.api.inc.
+ * Documentation for hooks defined by Dkan Harvest.
  */
 
-function dkan_harvest_harvest_sources() {
+/**
+ * Register a Dkan Harvest Source type.
+ *
+ * @see HarvestSourceType
+ */
+function dkan_harvest_harvest_sources_types() {
   return array(
-    'source_id' => array(
-      'remote' => 'http://data_json_remote',
-      'type' => 'data.json',
-      // Filter items preseting the following values (Optional).
-      'filters' => array('keyword' => array('health')),
-      // Exclude items presenting the following values (Optional).
-      'excludes' => array('keyword' => array('tabacco')),
-      // Provide defaults (Optional).
-      'defaults' => array('keyword' => array('harvested dataset'),
-      // Provide overrides (Optional).
-      'overrides' => array('author' => 'Author'),
+    'harvest_type_json' => array(
+      'machine_name' => 'harvest_type_json',
+      'name' => 'Harvest Source Type JSON',
+      'cache callback' => 'mymodule_harvest_type_json',
+      'migration class' => 'TypeHarvestMigrate',
     ),
   );
 }
