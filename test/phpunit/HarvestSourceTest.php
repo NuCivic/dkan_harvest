@@ -105,6 +105,8 @@ class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
     $source_remote_cachedir_path = DKAN_HARVEST_CACHE_DIR .
       '/' .
       $source_remote->machine_name;
+    // Make sure that we delete the cache directory.
+    file_unmanaged_delete_recursive($source_remote_cachedir_path);
     $rmdir = drupal_rmdir($source_remote_cachedir_path);
 
     $cacheDir = $source_remote->getCacheDir();
@@ -164,7 +166,7 @@ class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
   private function getLocalSource() {
     return new HarvestSourceTestStub(
       'harvest_test_source_local_file', DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-      "/test/data/harvest_test_source_local_file/data.json"
+      "/test/phpunit/data/harvest_test_source_local_file/data.json"
     );
   }
 }

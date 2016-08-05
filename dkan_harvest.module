@@ -356,7 +356,7 @@ function dkan_harvest_cache_sources(Array $sources, $harvest_updatetime=NULL) {
   foreach ($sources as $source) {
     $harvestCache = $source->cache($harvest_updatetime);
 
-    if (!isset($harvestCache)) {
+    if (!$harvestCache) {
       $message = t('Harvest Cache for @source_machine_name failed!',
         array(
           '@source_machine_name' => $source->machine_name,

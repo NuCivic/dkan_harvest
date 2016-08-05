@@ -22,12 +22,12 @@ class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
       'harvest_test_source_local_dir' => new HarvestSourceTestStub(
         'harvest_test_source_local_dir',
         DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/harvest_test_source_local_dir/"
+        "/test/phpunit/data/harvest_test_source_local_dir/"
       ),
       'harvest_test_source_local_file' => new HarvestSourceTestStub(
         'harvest_test_source_local_file',
         DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/harvest_test_source_local_file/data.json"
+        "/test/phpunit/data/harvest_test_source_local_file/data.json"
       ),
       'harvest_test_source_remote' => new HarvestSourceTestStub(
         'harvest_test_source_remote',
@@ -90,7 +90,7 @@ class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
     // have the updated harvest source.
     $harvest_test_source_local_dir->label = "This is an updated source";
     $harvest_test_source_local_dir->uri = DRUPAL_ROOT . "/" . drupal_get_path('module',
-      'dkan_harvest') . "/test/data/harvest_fictional_test_source/";
+      'dkan_harvest') . "/test/phpunit/data/harvest_fictional_test_source/";
     $migration_harvest_test_source_second = dkan_harvest_get_migration($harvest_test_source_local_dir);
     $this->assertEquals($harvest_test_source_local_dir, $migration_harvest_test_source_second->getHarvestSource());
   }
