@@ -273,8 +273,8 @@ class HarvestSource {
 
     // Get the cache callback for the source.
     $harvestCache = call_user_func(
-      $source->type->cache_callback,
-      $source,
+      $this->type->cache_callback,
+      $this,
       $harvest_updatetime
     );
 
@@ -295,7 +295,7 @@ class HarvestSource {
  * completion.
  */
   public function migrate($options = array()) {
-    $migration = $source->getMigration();
+    $migration = $this->getMigration();
     // Make sure the migration instantiation worked.
     if ($migration) {
       return $migration->processImport($options);
