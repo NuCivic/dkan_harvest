@@ -41,43 +41,62 @@ class HarvestSource {
    * @param Array source: Source array containing atleast all the required
    * source elements (As documented above) and any other optional proprety.
    */
-  public function __construct($machine_name, Array $source) {
-    // Required properties.
-    if (!is_string($machine_name) || empty($machine_name)) {
-      throw new Exception('HarvestSource machine_name invalid!');
-    }
-    else {
-      $this->machine_name = $machine_name;
+  public function __construct($machine_name) {
+    // $machine_name is really needed to construct this object.
+    if (empty($machine_name) || is_null($machine_name)) {
+      throw new Exception(t('machine name is required!'));
     }
 
-    if (!isset($source['uri']) || !is_string($source['uri'])) {
+    // Query the DB for a harvest_source node matching the machine name.
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'harvest_source')
+      ->propertyCondition('status', NODE_PUBLISHED)
+      ->fieldCondition('field_dkan_harvest_machine_name', 'machine', $machine_name);
+    $result = $query->execute();
+
+    if (!isset($result['node'])) {
+      throw new Exception(t('Harvest Source node with machine name %s not found.', array('%s' => $machine_name)));
+    }
+
+    $harvest_source_nids = array_keys($result['node']);
+    $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
+    $harvest_source_emw = entity_metadata_wrapper('node', $harvest_source_node);
+
+    $this->machine_name = $harvest_source_emw->field_dkan_harvest_machine_name->machine->value();
+
+    if (!isset($harvest_source_emw->field_dkan_harvest_source_uri)) {
       throw new Exception('HarvestSource uri invalid!');
     }
-    else {
-      $this->uri = $source['uri'];
-    }
+    $this->uri = $harvest_source_emw->field_dkan_harvest_source_uri->value();
 
-    // TODO Make sure the type exists.
-    if (!isset($source['type']) || !is_string($source['type'])) {
+    if (!isset($harvest_source_emw->field_dkan_harveset_type)) {
       throw new Exception('HarvestSource type invalid!');
     }
-    else {
-      // This should throw an exception if the type is not found.
-      $this->type = HarvestSourceType::getSourceType($source['type']);
-    }
+    $type_machine_name = $harvest_source_emw->field_dkan_harveset_type->value();
+    $this->type = HarvestSourceType::getSourceType($type_machine_name);
 
-    // Optional properties.
-    if (!isset($source['label']) || !is_string($source['label'])) {
-      $this->label = $this->machine_name;
-    }
-    else {
-      $this->label = $source['label'];
-    }
 
-    foreach (array('filters', 'excludes', 'defaults', 'overrides') as $optional) {
-      if (isset($source[$optional])) {
-        $this->{$optional} = $source[$optional];
+    $label = $harvest_source_emw->title->value();
+    if (!isset($label) || !is_string($label)) {
+      $label = $this->machine_name;
+    }
+    $this->label = $label;
+
+    $optionals = array(
+      'filters' => 'field_dkan_harvest_filters',
+      'excludes' => 'field_dkan_harvest_excludes',
+      'overrides' => 'field_dkan_harvest_overrides',
+      'defaults' => 'field_dkan_harvest_defaults',
+    );
+
+    foreach ($optionals as $property => $field) {
+      $property_value = array();
+      $field_double = $harvest_source_emw->{$field}->value();
+      foreach ($field_double as $key => $value) {
+        $property_value[$value['first']] = explode(',', $value['second']);
       }
+      $this->{$property} = $property_value;
     }
   }
 
@@ -144,34 +163,6 @@ class HarvestSource {
   }
 
   /**
-   * Query a single harvest source by machine_name.
-   *
-   * @param $machine_name: String source machine_name.
-   *
-   * @return HarvestSource source if found. Else return FALSE.
-   */
-  public static function getSourceByMachineName($machine_name) {
-    $query = new EntityFieldQuery();
-
-    $query->entityCondition('entity_type', 'node')
-      ->entityCondition('bundle', 'harvest_source')
-      ->propertyCondition('status', NODE_PUBLISHED)
-      ->fieldCondition('field_dkan_harvest_machine_name', 'machine', $machine_name);
-
-    $result = $query->execute();
-
-    if (isset($result['node'])) {
-      $harvest_source_nids = array_keys($result['node']);
-      $harvest_source_node = entity_load_single('node', array_pop($harvest_source_nids));
-      return self::getHarvestSourceFromNode($harvest_source_node);
-    }
-
-    // Something went wrong.
-    // TODO log this?
-    return FALSE;
-  }
-
-  /**
    * Get a HarvestSource object from a harvest_source node.
    *
    * @param $harvest_source_node harvest_source node.
@@ -181,38 +172,8 @@ class HarvestSource {
    * @throws Exception if HarvestSource creation fail.
    */
   public static function getHarvestSourceFromNode(stdClass $harvest_source_node) {
-    $harvest_source_emw = entity_metadata_wrapper('node', $harvest_source_node);
-
-    $source = array();
-    $source['label'] = $harvest_source_emw->title->value();
-
-    $machine_name = $harvest_source_emw->field_dkan_harvest_machine_name->machine->value();
-
-    if (isset($harvest_source_emw->field_dkan_harvest_source_uri)) {
-      $source['uri'] = $harvest_source_emw->field_dkan_harvest_source_uri->value();
-    }
-
-    if (isset($harvest_source_emw->field_dkan_harveset_type)) {
-      $source['type'] = $harvest_source_emw->field_dkan_harveset_type->value();
-    }
-
-    $optionals = array(
-      'filters' => 'field_dkan_harvest_filters',
-      'excludes' => 'field_dkan_harvest_excludes',
-      'overrides' => 'field_dkan_harvest_overrides',
-      'defaults' => 'field_dkan_harvest_defaults',
-    );
-
-    foreach ($optionals as $property => $field) {
-      $property_value = array();
-      $field_double = $harvest_source_emw->{$field}->value();
-      foreach ($field_double as $key => $value) {
-        $property_value[$value['first']] = explode(',', $value['second']);
-      }
-      $source[$property] = $property_value;
-    }
-
-    return new HarvestSource($machine_name, $source);
+    $harvest_source_node_emw = entity_metadata_wrapper('node', $harvest_source_node);
+    return new HarvestSource($harvest_source_node_emw->field_dkan_harvest_machine_name->machine->value());
   }
 
   /**
@@ -231,6 +192,32 @@ class HarvestSource {
    $result = db_query("SELECT MAX(starttime) FROM {migrate_log} WHERE machine_name =
      :migration_machine_name ORDER BY starttime ASC limit 1;", array(':migration_machine_name' =>
      $migration_machine_name));
+
+   $result_array = $result->fetchAssoc();
+
+   if (!empty($result_array)) {
+     $harvest_migrate_date = array_pop($result_array);
+     // Migrate saves the timestamps with microseconds. So we drop the extra
+     // info and get only the usual timestamp.
+     $harvest_migrate_date = floor($harvest_migrate_date/1000);
+     return $harvest_migrate_date;
+    }
+  }
+
+  /**
+   * Query the migrate_log table to get the time the harvest source
+   * migration run.
+   *
+   * @param string @mlid Harvest Source Migration event ID.
+   *
+   * @return Timestamp of the last Harvest Migration run. Or NULL if source not
+   * found or not run yet.
+   */
+  public static function getMigrationTimestampFromMlid($mlid) {
+   // Get the time the migration was run by mlid.
+   $result = db_query("SELECT MAX(starttime) FROM {migrate_log} WHERE mlid =
+     :mlid ORDER BY starttime ASC limit 1;", array(':mlid' =>
+     $mlid));
 
    $result_array = $result->fetchAssoc();
 
@@ -269,5 +256,126 @@ class HarvestSource {
    );
 
    return $result->rowCount();
+  }
+
+  /**
+   *
+   * @return HarvestCache object or FALSE in case of error.
+   */
+  public function cache($timestamp) {
+
+    if (!isset($timestamp)) {
+      $timestamp = microtime();
+    }
+
+    // Make sure the cache directory is cleared.
+    $this->getCacheDir(TRUE);
+
+    // Get the cache callback for the source.
+    $harvestCache = call_user_func(
+      $this->type->cache_callback,
+      $this,
+      $timestamp
+    );
+
+    if (!isset($harvestCache)) {
+      // Nothing to look for here.
+      return FALSE;
+    }
+
+    return $harvestCache;
+  }
+
+/**
+ * Run the migration for the sources.
+ *
+ * @param $options: Array extra options to pass to the migration.
+ *
+ * @return FALSE in case of a problem. Or a Migrate::RESULT_* status after
+ * completion.
+ */
+  public function migrate($options = array()) {
+    $migration = $this->getMigration();
+    // Make sure the migration instantiation worked.
+    if ($migration) {
+      return $migration->processImport($options);
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Run a full harvest on this source.
+   */
+  public function harvest() {
+    $this->cache();
+    $this->migrate();
+  }
+
+  /**
+   * Register and get the migration class for a harvest source.
+   *
+   * @return HarvestMigration object related to the source. Or FALSE if failed.
+   */
+  public function getMigration() {
+    $harvest_migration_machine_name = $this->getMigrationMachineName();
+
+    // Prepare $arguments to pass to the migration.
+    $arguments = array(
+      // Group all the harvest migration under the "dkan_harvest" group.
+      // TODO better way to utilize the group feature in dkan_harvest (?).
+      'group_name' => 'dkan_harvest',
+      'dkan_harvest_source' => $this,
+    );
+
+    // Register the migration if it does not exist yet or update the arguments if
+    // not.
+    HarvestMigration::registerMigration(
+      $this->type->migration_class,
+      $harvest_migration_machine_name,
+      $arguments
+    );
+
+    // This will make sure the Migration have the latest arguments.
+    $migration = HarvestMigration::getInstance($harvest_migration_machine_name,
+      $this->type->migration_class, $arguments);
+
+    // Probably we should not trust migrations not subclassed from our
+    // HarvestMigration. Altheugh this check should've have happened in the
+    // HarvestType level.
+    if (!isset($migration) || !is_a($migration, 'HarvestMigration')) {
+      return FALSE;
+    }
+
+    return $migration;
+  }
+
+  /**
+   * Remove any cached or imported content.
+   *
+   * @return HarvestSource::RESULT_* status code or FALSE if something is gone
+   * wrong.
+   */
+  public function rollback($options = array()) {
+    // Clear the cache dir.
+    $this->getCacheDir(TRUE);
+
+    // Rollback harvest migration.
+    $migration = $this->getMigration();
+    // Make sure the migration instantiation worked.
+    if ($migration) {
+      return $migration->processRollback($options);
+    }
+
+    // Something went south, return false.
+    return FALSE;
+  }
+
+  /**
+   * Deregister HarvestMigration migration associated with this source.
+   */
+  public function deregister() {
+    HarvestMigration::deregisterMigration($this->getMigrationMachineName());
   }
 }

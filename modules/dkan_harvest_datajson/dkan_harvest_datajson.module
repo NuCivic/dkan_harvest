@@ -12,13 +12,13 @@ function dkan_harvest_datajson_harvest_source_types() {
   return array(
     'datajson_v1_1_json' => array(
       'machine_name' => 'datajson_v1_1_json',
-      'name' => 'Project Open Data v1.1 JSON',
+      'label' => 'Project Open Data v1.1 JSON',
       'cache callback' => 'dkan_harvest_datajson_cache',
       'migration class' => 'DatajsonHarvestMigration',
     ),
     'datajson_v1_1_xml' => array(
       'machine_name' => 'datajson_v1_1_xml',
-      'name' => 'Project Open Data v1.1 XML',
+      'label' => 'Project Open Data v1.1 XML',
       'cache callback' => 'dkan_harvest_datajson_cache',
       'migration class' => 'DatajsonHarvestMigration',
     ),
@@ -113,11 +113,11 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
 
       if ($accept) {
         // Update the cache result object.
-        $harvestCache->setCacheEntryFiltered($dataset_key);
+        $harvestCache->setCacheEntryFiltered($dataset_key, $dataset['title']);
       }
       else {
         // This dataset will be dropped from here on. Add to the processed count.
-        $harvestCache->setCacheEntryProcessed($dataset_key);
+        $harvestCache->setCacheEntryProcessed($dataset_key, $dataset['title']);
       }
 
       // Drop the dataset if excluded.
@@ -154,7 +154,7 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
         // Update the cache result object.
         // This dataset will be dropped from here on. Add to the processed
         // count.
-        $harvestCache->setCacheEntryExcluded($dataset_key);
+        $harvestCache->setCacheEntryExcluded($dataset_key, $dataset['title']);
       }
 
       // Drop the dataset if excluded.
@@ -168,14 +168,14 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
     $identifier = dkan_harvest_datajson_prepare_item_id($dataset['identifier']);
     $dataset_file = implode('/', array($source->getCacheDir(), $identifier));
     $data = drupal_json_encode($dataset);
-    $cached = file_put_contents($dataset_file, $data);
+    $cached = @file_put_contents($dataset_file, $data);
 
     if (!$cached) {
-      $harvestCache->setCacheEntryFailed($identifier);
+      $harvestCache->setCacheEntryFailed($identifier, $dataset['title']);
     }
     else {
       // This will reset the failed flag if previously set.
-      $harvestCache->setCacheEntryProcessed($identifier);
+      $harvestCache->setCacheEntryProcessed($identifier, $dataset['title']);
     }
   }
 
