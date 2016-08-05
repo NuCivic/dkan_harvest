@@ -269,7 +269,7 @@ class HarvestSource {
     }
 
     // Make sure the cache directory is cleared.
-    $source->getCacheDir(TRUE);
+    $this->getCacheDir(TRUE);
 
     // Get the cache callback for the source.
     $harvestCache = call_user_func(
