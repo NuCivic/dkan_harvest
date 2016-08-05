@@ -7,13 +7,22 @@
 
 class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
 
+  static $setUpBeforeClassModuleDisabled = FALSE;
+
   /**
    * {@inheritdoc}
    */
   public static function setUpBeforeClass() {
     // Make sure the test module exporting the test source type is disbled.
     // This will be enabled during the tests.
-    module_disable(array('dkan_harvest_test'));
+    if (!module_exists('dkan_harvest_test')) {
+      // The module is disabled.
+      self::$setUpBeforeClassModuleDisabled = TRUE;
+    }
+    else {
+      self::$setUpBeforeClassModuleDisabled = FALSE;
+      module_disable(array('dkan_harvest_test'));
+    }
   }
 
   /**
@@ -140,8 +149,13 @@ class DkanHarvestSourcesTest extends \PHPUnit_Framework_TestCase {
    * {@inheritdoc}
    */
   public static function tearDownAfterClass() {
-    // Assuming the test module enabled by now. Restore original status of the
-    // modules.
-    module_disable(array('dkan_harvest_test'));
+    if (self::$setUpBeforeClassModuleDisabled) {
+      // Assuming the test module enabled by now. Restore original status of the
+      // modules.
+      module_disable(array('dkan_harvest_test'));
+    }
+    else {
+      module_enable(array('dkan_harvest_test'));
+    }
   }
 }

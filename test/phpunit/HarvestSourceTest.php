@@ -5,6 +5,11 @@
  * Base phpunit tests for HarvestSource class.
  */
 
+include_once __DIR__ . '/includes/HarvestSourceTestStub.php';
+
+/**
+ *
+ */
 class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
 
   // dkan_harvest_test status.
@@ -29,54 +34,56 @@ class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * @expectedException Exception
-   * @expectedExceptionMessage HarvestSource machine_name invalid!
+   * @expectedExceptionMessage machine name is required!
    */
   public function testHarvestSourceConstructMachineNameNULLException() {
-    $source = new HarvestSource(NULL, array());
+    $source = new HarvestSource(NULL);
   }
 
   /**
    * @expectedException Exception
-   * @expectedExceptionMessage HarvestSource machine_name invalid!
+   * @expectedExceptionMessage machine name is required!
    */
   public function testHarvestSourceConstructMachineNameEmptyException() {
-    $source = new HarvestSource('', array());
+    $source = new HarvestSource('');
   }
 
   /**
-   * @expectedException Exception
-   * @expectedExceptionMessage HarvestSource uri invalid!
-   */
-  public function testHarvestSourceConstructURIException() {
-    $source = new HarvestSource('harvest_source_test'
-      , array(
-        'type' => 'harvest_test_type',
-      ));
-  }
-
-  /**
-   * @expectedException Exception
-   * @expectedExceptionMessage HarvestSource type invalid!
-   */
-  public function testHarvestSourceConstructTypeException() {
-    $source = new HarvestSource('harvest_source_test'
-      , array(
-        'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/harvest_test_source_local_dir/",
-      ));
-  }
-
-  /**
-   * Test a successful HarvestSource instantiation.
+   * Test a valid HarvestSource instantiation.
    */
   public function testHarvestSourceConstruct() {
-    $source = new HarvestSource(
-      'harvest_test_source_remote', array (
-        'uri' => 'https://data.mo.gov/data.json',
-        'type' => 'harvest_test_type',
-        'label' => 'Dkan Harvest Test Source',
-      ));
+    // Create and save the harvest source node.
+    $node = new stdClass();
+    $node->title = 'testHarvestSourceConstructTitle';
+    $node->type = "harvest_source";
+    node_object_prepare($node); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
+    $node->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+    $node->uid = 1;
+    $node->status = 1; //(1 or 0): published or not
+    $node->promote = 0; //(1 or 0): promoted to front page
+    $node->comment = 0; // 0 = comments disabled, 1 = read only, 2 = read/write
+
+    $node->field_dkan_harvest_machine_name[$node->language][]['machine'] = 'test_harvest_source_construct';
+
+    $node->field_dkan_harvest_source_uri[$node->language][0]['value'] = 'https://data.mo.gov/data.json';
+    $node->field_dkan_harvest_source_uri[$node->language][0]['safe_value'] = 'https://data.mo.gov/data.json';
+
+    $node->field_dkan_harveset_type[$node->language][]['value'] = 'harvest_test_type';
+
+    $node = node_submit($node); // Prepare node for saving
+    node_save($node);
+
+    $this->testHarvestSourceConstructNID = $node->nid;
+
+    // Get the HarvestSource object.
+    $source = new HarvestSource('test_harvest_source_construct');
+
     $this->assertNotNull($source);
+    $this->assertEquals($source->label, $node->title);
+    $this->assertEquals($source->type,
+      HarvestSourceType::getSourceType($node->field_dkan_harveset_type[$node->language][0]['value']));
+    $this->assertEquals($source->uri, $node->field_dkan_harvest_source_uri[$node->language][0]['safe_value']);
+
   }
 
   /**
@@ -98,6 +105,8 @@ class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
     $source_remote_cachedir_path = DKAN_HARVEST_CACHE_DIR .
       '/' .
       $source_remote->machine_name;
+    // Make sure that we delete the cache directory.
+    file_unmanaged_delete_recursive($source_remote_cachedir_path);
     $rmdir = drupal_rmdir($source_remote_cachedir_path);
 
     $cacheDir = $source_remote->getCacheDir();
@@ -132,32 +141,32 @@ class HarvestSourceTest extends \PHPUnit_Framework_TestCase {
     if (!self::$dkanHarvestTestBeforClassStatus) {
       module_disable(array('dkan_harvest_test'));
     }
+
+    // Clean up after the testHarvestSourceConstruct test
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', 'harvest_source')
+      ->fieldCondition('field_dkan_harvest_machine_name', 'machine', 'test_harvest_source_construct');
+    $result = $query->execute();
+
+    node_delete_multiple(array_keys($result));
   }
 
   /**
    * Return Test HarvestSource object.
    */
   private function getRemoteSource() {
-    return new HarvestSource(
-      'harvest_test_source_remote', array (
-        'uri' => 'https://data.mo.gov/data.json',
-        'type' => 'harvest_test_type',
-        'label' => 'Dkan Harvest Test Source',
-      ));
+    return new HarvestSourceTestStub(
+      'harvest_test_source_remote', 'https://data.mo.gov/data.json');
   }
 
   /**
    * Return Test HarvestSource object.
    */
   private function getLocalSource() {
-    return new HarvestSource(
-      'harvest_test_source_local_file', array (
-        'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-        "/test/data/harvest_test_source_local_file/data.json",
-        'type' => 'harvest_test_type',
-        'label' => 'Dkan Harvest Test Source',
-
-      )
+    return new HarvestSourceTestStub(
+      'harvest_test_source_local_file', DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
+      "/test/phpunit/data/harvest_test_source_local_file/data.json"
     );
   }
 }
