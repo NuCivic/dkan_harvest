@@ -159,7 +159,7 @@ function dkan_harvest_harvest_now_form_submit($form, &$form_state) {
  */
 function dkan_harvest_get_last_event_log($node) {
   $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
-  $harvestSourceMigration = $harvestSource->getHarvestMigration();
+  $harvestSourceMigration = $harvestSource->getMigration();
   $logTable = $harvestSourceMigration->getMap()->getLogTable();
 
   $query = db_select('migrate_log', 'log');

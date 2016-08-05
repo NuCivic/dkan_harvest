@@ -259,19 +259,6 @@ class HarvestSource {
   }
 
   /**
-   * Register and get the migration class for a harvest source.
-   *
-   * @param HarvestSource $source
-   */
-  public function getHarvestMigration(HarvestSource $source) {
-    $harvestMigration = $source->getMigration();
-    if (!$harvestMigration) {
-      dkan_harvest_log(t("Harvest Migration registration failed!"), 'error');
-    }
-    return $harvestMigration;
-  }
-
-  /**
    *
    * @return HarvestCache object or FALSE in case of error.
    */
