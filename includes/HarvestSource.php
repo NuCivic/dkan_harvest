@@ -275,7 +275,7 @@ class HarvestSource {
     $harvestCache = call_user_func(
       $this->type->cache_callback,
       $this,
-      $harvest_updatetime
+      $timestamp
     );
 
     if (!isset($harvestCache)) {
@@ -357,7 +357,7 @@ class HarvestSource {
    * @return HarvestSource::RESULT_* status code or FALSE if something is gone
    * wrong.
    */
-  public function rollback() {
+  public function rollback($options = array()) {
     // Clear the cache dir.
     $this->getCacheDir(TRUE);
 
