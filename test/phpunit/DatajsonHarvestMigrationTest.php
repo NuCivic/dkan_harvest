@@ -498,9 +498,10 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     /**
      * Test message table.
      */
-    // We don't expect any new messages from this test. The old and new message
-    // table should be the same.
-    $this->assertEquals($migrationOldMessage, $migrationEmptyMessage);
+    // We expect one new message from this test when harvesting the empty
+    // source.
+    $this->assertNotEquals($migrationOldMessage, $migrationEmptyMessage);
+    $this->assertEquals(count($migrationOldMessage) + 1, count($migrationEmptyMessage));
   }
 
   /**
@@ -543,9 +544,9 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     /**
      * Test message table.
      */
-    // We don't expect any new messages from this test. The old and new message
-    // table should be the same.
-    $this->assertEquals($migrationErrorMessage, $migrationEmptyMessage);
+    // Harvesting the empty source will add a new error message.
+    $this->assertNotEquals($migrationErrorMessage, $migrationEmptyMessage);
+    $this->assertEquals(count($migrationErrorMessage) + 1, count($migrationEmptyMessage));
   }
 
   /**
