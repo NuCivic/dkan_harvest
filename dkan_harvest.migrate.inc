@@ -1080,13 +1080,6 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
-   * Getter for harvest source. This is mainly used for unittests.
-   */
-  public function getHarvestSource() {
-    return $this->dkanHarvestSource;
-  }
-
-  /**
    * {@inheritdoc}
    *
    * Change the default to not warn as overriding field mapping is common
