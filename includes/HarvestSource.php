@@ -282,6 +282,8 @@ class HarvestSource {
       // Nothing to look for here.
       return FALSE;
     }
+
+    return $harvestCache;
   }
 
 /**
