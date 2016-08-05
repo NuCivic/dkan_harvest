@@ -25,7 +25,6 @@ dependencies:
     - mkdir $CIRCLE_ARTIFACTS/junit
     - 'bash dkan-module-init.sh --deps --build=$DATABASE_URL'
     - cd dkan_harvest && composer install && cd ..
-    - ahoy drush -y en dkan_harvest_test
     # Remove all dkan tests for now
     - rm -rf dkan/test/features/*.feature
     - cp dkan_harvest/test/behat/features/*.feature dkan/test/features/
