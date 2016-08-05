@@ -257,4 +257,123 @@ class HarvestSource {
 
    return $result->rowCount();
   }
+
+  /**
+   *
+   * @return HarvestCache object or FALSE in case of error.
+   */
+  public function cache($timestamp) {
+
+    if (!isset($timestamp)) {
+      $timestamp = microtime();
+    }
+
+    // Make sure the cache directory is cleared.
+    $this->getCacheDir(TRUE);
+
+    // Get the cache callback for the source.
+    $harvestCache = call_user_func(
+      $source->type->cache_callback,
+      $source,
+      $harvest_updatetime
+    );
+
+    if (!isset($harvestCache)) {
+      // Nothing to look for here.
+      return FALSE;
+    }
+  }
+
+/**
+ * Run the migration for the sources.
+ *
+ * @param $options: Array extra options to pass to the migration.
+ *
+ * @return FALSE in case of a problem. Or a Migrate::RESULT_* status after
+ * completion.
+ */
+  public function migrate($options = array()) {
+    $migration = $source->getMigration();
+    // Make sure the migration instantiation worked.
+    if ($migration) {
+      return $migration->processImport($options);
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Run a full harvest on this source.
+   */
+  public function harvest() {
+    $this->cache();
+    $this->migrate();
+  }
+
+  /**
+   * Register and get the migration class for a harvest source.
+   *
+   * @return HarvestMigration object related to the source. Or FALSE if failed.
+   */
+  public function getMigration() {
+    $harvest_migration_machine_name = $this->getMigrationMachineName();
+
+    // Prepare $arguments to pass to the migration.
+    $arguments = array(
+      // Group all the harvest migration under the "dkan_harvest" group.
+      // TODO better way to utilize the group feature in dkan_harvest (?).
+      'group_name' => 'dkan_harvest',
+      'dkan_harvest_source' => $this,
+    );
+
+    // Register the migration if it does not exist yet or update the arguments if
+    // not.
+    HarvestMigration::registerMigration(
+      $this->type->migration_class,
+      $harvest_migration_machine_name,
+      $arguments
+    );
+
+    // This will make sure the Migration have the latest arguments.
+    $migration = HarvestMigration::getInstance($harvest_migration_machine_name,
+      $this->type->migration_class, $arguments);
+
+    // Probably we should not trust migrations not subclassed from our
+    // HarvestMigration. Altheugh this check should've have happened in the
+    // HarvestType level.
+    if (!isset($migration) || !is_a($migration, 'HarvestMigration')) {
+      return FALSE;
+    }
+
+    return $migration;
+  }
+
+  /**
+   * Remove any cached or imported content.
+   *
+   * @return HarvestSource::RESULT_* status code or FALSE if something is gone
+   * wrong.
+   */
+  public function rollback() {
+    // Clear the cache dir.
+    $this->getCacheDir(TRUE);
+
+    // Rollback harvest migration.
+    $migration = $this->getMigration();
+    // Make sure the migration instantiation worked.
+    if ($migration) {
+      return $migration->processRollback($options);
+    }
+
+    // Something went south, return false.
+    return FALSE;
+  }
+
+  /**
+   * Deregister HarvestMigration migration associated with this source.
+   */
+  public function deregister() {
+    HarvestMigration::deregisterMigration($this->getMigrationMachineName());
+  }
 }

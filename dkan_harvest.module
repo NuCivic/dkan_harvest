@@ -18,6 +18,17 @@ define(
 );
 
 /**
+ * Implements hook_permission().
+ */
+function dkan_harvest_permission() {
+  return array(
+    'admininster harvest' => array(
+      'title' => t('Administrate harvest sources and datasets'),
+    )
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function dkan_harvest_menu() {
@@ -74,9 +85,9 @@ function dkan_harvest_page_tab_access($node) {
     return FALSE;
   }
 
-  // If the user can update the harvest node. Grant her/him access to the event
-  // log.
-  return node_access('update', $node);
+  // If the user have the 'admininster harvest' permission, grant her/him
+  // access to the event log.
+  return user_access('admininster harvest');
 }
 
 /**
@@ -92,15 +103,20 @@ function dkan_harvest_page_preview($node) {
 
   // Get the cache callback for the source.
   // This will run a cache operation for the harvest source. Download the file and processed and create cache directory
-    $harvestCache = call_user_func(
-      $harvestSource->type->cache_callback,
-      $harvestSource,
-      NULL
-    );
+  $harvestCache = $harvestSource->cache();
+
 
   $rows = array();
-  foreach ($harvestCache->getProcessed() as $id => $dataset_item) {
-    $rows[] = array($id, $dataset_item['title']);
+  if (!$harvestCache) {
+    // Could not cache the source. issue?
+    $message = t("Failed to fetch the source. Please make sure that the source
+is reachable and the filters are setup correctly.");
+    drupal_set_message($message, 'error', FALSE);
+  }
+  else {
+    foreach ($harvestCache->getProcessed() as $id => $dataset_item) {
+      $rows[] = array($id, $dataset_item['title']);
+    }
   }
 
   $form_import = drupal_get_form('dkan_harvest_harvest_now_form', $node);
@@ -143,7 +159,7 @@ function dkan_harvest_harvest_now_form_submit($form, &$form_state) {
  */
 function dkan_harvest_get_last_event_log($node) {
   $harvestSource = HarvestSource::getHarvestSourceFromNode($node);
-  $harvestSourceMigration = dkan_harvest_get_migration($harvestSource);
+  $harvestSourceMigration = $harvestSource->getHarvestMigration();
   $logTable = $harvestSourceMigration->getMap()->getLogTable();
 
   $query = db_select('migrate_log', 'log');
@@ -287,21 +303,13 @@ function dkan_harvest_source_types_definition() {
 }
 
 /**
- * Run the migration for the passed sources.
  *
- * @param $sources: Array of Harvest Sources to migrate.
- * @param $options: Array extra options to pass to the migration.
- *
- * @return //TODO
  */
 function dkan_harvest_migrate_sources(Array $sources, Array $options = array()) {
   foreach ($sources as $source) {
-    $migration = dkan_harvest_get_migration($source);
-    // Make sure the migration instantiation worked.
-    if ($migration) {
-      $migration->processImport($options);
-    }
-    else {
+    $return_code = $source->migrate($options);
+    // Return an error if we couldn't run the migration.
+    if ($return_code === FALSE) {
       // Log as error.
       $message = t('Failed to start source harvest migration. Cannot load migration object.');
       dkan_harvest_log($message, 'error');
@@ -314,17 +322,10 @@ function dkan_harvest_migrate_sources(Array $sources, Array $options = array()) 
  *
  * @param $sources: Array of Harvest Sources to rollback.
  * @param $options: Array extra options to pass to the migration.
- *
- * @return //TODO
  */
 function dkan_harvest_rollback_sources(Array $sources, Array $options = array()) {
   foreach ($sources as $source) {
-    $migration = dkan_harvest_get_migration($source);
-    // Make sure the migration instantiation worked.
-    if ($migration) {
-      $migration->processRollback($options);
-    }
-    else {
+    if (!$source->rollback()) {
       // Log as error.
       $message = t('Failed to rollback source harvest migration. Cannot load migration object.');
       dkan_harvest_log($message, 'error');
@@ -336,40 +337,13 @@ function dkan_harvest_rollback_sources(Array $sources, Array $options = array())
  * Register and get the migration class for a harvest source.
  *
  * @param HarvestSource $source
- *
- * @return HarvestMigration object related to the source. Or FALSE if failed.
  */
 function dkan_harvest_get_migration(HarvestSource $source) {
-  $harvest_migration_machine_name = $source->getMigrationMachineName();
-
-  // Prepare $arguments to pass to the migration.
-  $arguments = array(
-    // Group all the harvest migration under the "dkan_harvest" group.
-    // TODO better way to utilize the group feature in dkan_harvest (?).
-    'group_name' => 'dkan_harvest',
-    'dkan_harvest_source' => $source,
-  );
-
-  // Register the migration if it does not exist yet or update the arguments if
-  // not.
-  HarvestMigration::registerMigration(
-    $source->type->migration_class,
-    $harvest_migration_machine_name,
-    $arguments
-  );
-
-  // This will make sure the Migration have the latest arguments.
-  $migration = HarvestMigration::getInstance($harvest_migration_machine_name, $source->type->migration_class, $arguments);
-
-  // Probably we should not trust migrations not subclassed from our
-  // HarvestMigration. Altheugh this check should've have happened in the
-  // HarvestType level.
-  if (!isset($migration) || !is_a($migration, 'HarvestMigration')) {
+  $harvestMigration = $source->getMigration();
+  if (!$harvestMigration) {
     dkan_harvest_log(t("Harvest Migration registration failed!"), 'error');
-    return FALSE;
   }
-
-  return $migration;
+  return $harvestMigration;
 }
 
 /**
@@ -377,24 +351,10 @@ function dkan_harvest_get_migration(HarvestSource $source) {
  *
  * @param Array $sources: Array of HarvestSource object to harvest.
  * @param $harvest_updatetime: timestamp of the time to use as the update time.
- *
- * @return //TODO
  */
 function dkan_harvest_cache_sources(Array $sources, $harvest_updatetime=NULL) {
-  if (!isset($harvest_updatetime)) {
-    $harvest_updatetime = microtime();
-  }
-
   foreach ($sources as $source) {
-    // Make sure the cache directory is cleared.
-    $source->getCacheDir(TRUE);
-
-    // Get the cache callback for the source.
-    $harvestCache = call_user_func(
-      $source->type->cache_callback,
-      $source,
-      $harvest_updatetime
-    );
+    $harvestCache = $source->cache($harvest_updatetime);
 
     if (!isset($harvestCache)) {
       $message = t('Harvest Cache for @source_machine_name failed!',
@@ -404,7 +364,13 @@ function dkan_harvest_cache_sources(Array $sources, $harvest_updatetime=NULL) {
       dkan_harvest_log($message, 'error');
     }
     else {
-      $message = t('Harvest Cache for @source_machine_name completed (processed @cache_processed, failed @cache_failed, saved @cache_saved (filtered @cache_filtered, excluded @cache_excluded), defaulted @cache_defaulted, overridden @cache_overridden).',
+      $message = t('Harvest Cache for @source_machine_name completed'
+        . ' (processed @cache_processed, '
+        . 'failed @cache_failed, '
+        . 'saved @cache_saved '
+        . '(filtered @cache_filtered, excluded @cache_excluded), '
+        . 'defaulted @cache_defaulted, '
+        . 'overridden @cache_overridden).',
         array(
           '@source_machine_name' => $source->machine_name,
           '@cache_processed' => $harvestCache->getProcessedCount(),
@@ -483,7 +449,7 @@ function dkan_harvest_cache_default(HarvestSource $source, $harvest_updatetime) 
  */
 function dkan_harvest_deregister_sources(Array $sources) {
   foreach ($sources as $source) {
-    HarvestMigration::deregisterMigration($source->getMigrationMachineName());
+    $source->deregister();
   }
 }
 
