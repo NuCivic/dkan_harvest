@@ -43,6 +43,11 @@ function dkan_harvest_page_event_log($node) {
 
   $results = $query_result->fetchAllAssoc('mlid');
 
+  // Convert from microsecnod to seconds.
+  function timefloor ($microtime) {
+    return floor($microtime/1000);
+  }
+  
   if(count($results)) {
     // Build the table rows.
     $rows = array();
@@ -96,12 +101,6 @@ function dkan_harvest_page_event_log($node) {
       '#markup' => '<em>No log messages available.</em>',   
     );
   }
-
-  // Convert from microsecnod to seconds.
-  function timefloor ($microtime) {
-    return floor($microtime/1000);
-  }
-
 
   return $build;
 }
