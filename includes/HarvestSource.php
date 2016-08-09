@@ -262,7 +262,7 @@ class HarvestSource {
    *
    * @return HarvestCache object or FALSE in case of error.
    */
-  public function cache($timestamp) {
+  public function cache($timestamp=NULL) {
 
     if (!isset($timestamp)) {
       $timestamp = microtime();
