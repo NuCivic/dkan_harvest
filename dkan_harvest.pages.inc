@@ -47,7 +47,18 @@ function dkan_harvest_page_event_log($node) {
   function timefloor ($microtime) {
     return floor($microtime/1000);
   }
-  
+
+  // Add help text
+  $build['help'] = array(
+    '#attributes' => array(
+      'class' => array('help-block'),
+    ),
+    '#type' => 'markup',
+    '#markup' => t('Chronological log of harvests performed on this source. See the "Error log" page for details on any failures listed here.'),
+    '#prefix' => '<span class="help-block">',
+    '#suffix' => '</span>',
+  );  
+
   if(count($results)) {
     // Build the table rows.
     $rows = array();
@@ -69,16 +80,7 @@ function dkan_harvest_page_event_log($node) {
       $rows[] = $row;
     }
 
-    // Add help text
-    $build['help'] = array(
-      '#attributes' => array(
-        'class' => array('help-block'),
-      ),
-      '#type' => 'markup',
-      '#markup' => t('Chronological log of harvests performed on this source. See the "Error log" page for details on any failures listed here.'),
-      '#prefix' => '<span class="help-block">',
-      '#suffix' => '</span>',
-    );
+
 
     // Return properly styled output.
     $build['pager_table'] = array(
@@ -137,6 +139,17 @@ function dkan_harvest_page_error_log($node) {
   $query_result = $query->execute();
 
   $results = $query_result->fetchAllAssoc('msgid');
+
+  // Add help text
+  $build['help'] = array(
+    '#attributes' => array(
+      'class' => array('help-block'),
+    ),
+    '#type' => 'markup',
+    '#markup' => t('Log of errors reported during harvesting from this source.'),
+    '#prefix' => '<span class="help-block">',
+    '#suffix' => '</span>',
+  );
 
   if(count($results)) { 
     // Build the table rows.
