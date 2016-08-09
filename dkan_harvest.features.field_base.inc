@@ -254,6 +254,6 @@ function dkan_harvest_field_default_field_bases() {
     'translatable' => 0,
     'type' => 'list_boolean',
   );
-  
+
   return $field_bases;
 }

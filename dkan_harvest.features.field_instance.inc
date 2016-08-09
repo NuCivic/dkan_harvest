@@ -10,6 +10,54 @@
 function dkan_harvest_field_default_field_instances() {
   $field_instances = array();
 
+  // Exported field_instance: 'node-dataset-field_orphan'.
+  $field_instances['node-dataset-field_orphan'] = array(
+    'bundle' => 'dataset',
+    'default_value' => array(
+      0 => array(
+        'value' => 0,
+      ),
+    ),
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'hidden',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 21,
+      ),
+      'search_result' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'node',
+    'field_name' => 'field_orphan',
+    'label' => 'Orphan',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'options',
+      'settings' => array(
+        'display_label' => 0,
+      ),
+      'type' => 'options_onoff',
+      'weight' => 25,
+    ),
+  );
+
   // Exported field_instance: 'node-harvest_source-field_dkan_harveset_type'.
   $field_instances['node-harvest_source-field_dkan_harveset_type'] = array(
     'bundle' => 'harvest_source',
@@ -560,54 +608,6 @@ function dkan_harvest_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'node-dataset-field_orphan'.
-  $field_instances['node-dataset-field_orphan'] = array(
-    'bundle' => 'dataset',
-    'default_value' => array(
-      0 => array(
-        'value' => 0,
-      ),
-    ),
-    'deleted' => 0,
-    'description' => '',
-    'display' => array(
-      'default' => array(
-        'label' => 'hidden',
-        'settings' => array(),
-        'type' => 'hidden',
-        'weight' => 21,
-      ),
-      'search_result' => array(
-        'label' => 'above',
-        'settings' => array(),
-        'type' => 'hidden',
-        'weight' => 0,
-      ),
-      'teaser' => array(
-        'label' => 'above',
-        'settings' => array(),
-        'type' => 'hidden',
-        'weight' => 0,
-      ),
-    ),
-    'entity_type' => 'node',
-    'field_name' => 'field_orphan',
-    'label' => 'Orphan',
-    'required' => 0,
-    'settings' => array(
-      'user_register_form' => FALSE,
-    ),
-    'widget' => array(
-      'active' => 1,
-      'module' => 'options',
-      'settings' => array(
-        'display_label' => 0,
-      ),
-      'type' => 'options_onoff',
-      'weight' => 25,
-    ),
-  );
-
   // Translatables
   // Included for use with string extractors like potx.
   t('Add one or more filters to narrow a harvest to a specific subset of fields and values.');
@@ -618,11 +618,11 @@ function dkan_harvest_field_default_field_instances() {
   t('Filters');
   t('Machine Name');
   t('Notes');
+  t('Orphan');
   t('Overrides');
   t('Set a default value to be used when the specified field is empty.');
   t('Source URI');
   t('Type');
-  t('Orphan');
   t('Type of source we are harvesting.');
 
   return $field_instances;
