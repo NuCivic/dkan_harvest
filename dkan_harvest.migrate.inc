@@ -197,8 +197,8 @@ class HarvestMigration extends MigrateDKAN {
       parent::processImport($options);
     }
     else {
-      $message = 'Harvest Migration is not idle!';
-      self::displayMessage($message);
+      $this->resetStatus();
+      $this->processImport($options);
     }
   }
 

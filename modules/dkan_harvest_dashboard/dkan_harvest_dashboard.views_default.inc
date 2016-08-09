@@ -768,7 +768,7 @@ Off|Non-orphans only',
   $handler->display->display_options['arguments']['field_harvest_source_ref_target_id']['validate_options']['access_op'] = 'update';
   $handler->display->display_options['path'] = 'node/%/datasets';
   $handler->display->display_options['menu']['type'] = 'tab';
-  $handler->display->display_options['menu']['title'] = 'Administer Datasets';
+  $handler->display->display_options['menu']['title'] = 'Manage Datasets';
   $handler->display->display_options['menu']['weight'] = '0';
   $handler->display->display_options['menu']['context'] = 0;
   $handler->display->display_options['menu']['context_only_inline'] = 0;

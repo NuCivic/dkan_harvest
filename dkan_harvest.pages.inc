@@ -48,26 +48,6 @@ function dkan_harvest_page_event_log($node) {
     return floor($microtime/1000);
   }
 
-  // Build the table rows.
-  $rows = array();
-  foreach ($results as $result) {
-    $row = array(
-      'data' => array(
-        'mlid' => $result->mlid,
-        'date' => format_date(timefloor($result->starttime)),
-        'duration' => format_interval(timefloor($result->duration), 2),
-        'created' => $result->created,
-        'updated' => $result->updated,
-        'failed' => $result->failed,
-        'orphaned' => $result->orphaned,
-        'unchanged' => $result->unchanged,
-      ),
-      'class' => array('harvest-event'),
-    );
-
-    $rows[] = $row;
-  }
-
   // Add help text
   $build['help'] = array(
     '#attributes' => array(
@@ -77,23 +57,52 @@ function dkan_harvest_page_event_log($node) {
     '#markup' => t('Chronological log of harvests performed on this source. See the "Error log" page for details on any failures listed here.'),
     '#prefix' => '<span class="help-block">',
     '#suffix' => '</span>',
-  );
+  );  
 
-  // Return properly styled output.
-  $build['pager_table'] = array(
-    '#attached' => array(
-      'css' => array(),
-    ),
-    '#theme' => 'table',
-    '#attributes' => array(
-       'class' => array('harvest-event-log'),
-    ),
-    '#header' => $header,
-    '#rows' => $rows,
-  );
+  if(count($results)) {
+    // Build the table rows.
+    $rows = array();
+    foreach ($results as $result) {
+      $row = array(
+        'data' => array(
+          'mlid' => $result->mlid,
+          'date' => format_date(timefloor($result->starttime)),
+          'duration' => format_interval(timefloor($result->duration), 2),
+          'created' => $result->created,
+          'updated' => $result->updated,
+          'failed' => $result->failed,
+          'orphaned' => $result->orphaned,
+          'unchanged' => $result->unchanged,
+        ),
+        'class' => array('harvest-event'),
+      );
 
-  // Attach the pager theme.
-  $build['pager_pager'] = array('#theme' => 'pager');
+      $rows[] = $row;
+    }
+
+
+
+    // Return properly styled output.
+    $build['pager_table'] = array(
+      '#attached' => array(
+        'css' => array(),
+      ),
+      '#theme' => 'table',
+      '#attributes' => array(
+         'class' => array('harvest-event-log'),
+      ),
+      '#header' => $header,
+      '#rows' => $rows,
+    );
+
+    // Attach the pager theme.
+    $build['pager_pager'] = array('#theme' => 'pager');    
+  } 
+  else {
+    $build['no_results'] = array(
+      '#markup' => '<em>No log messages available.</em>',   
+    );
+  }
 
   return $build;
 }
@@ -131,87 +140,105 @@ function dkan_harvest_page_error_log($node) {
 
   $results = $query_result->fetchAllAssoc('msgid');
 
-  // Build the table rows.
-  $collapsible_items = array();
-  foreach ($results as $result) {
-    if (isset($result->sourceid1)){
-      // Lookup the dataset nid. lookupDestinationID() takes an array and
-      // returns an array, But really we are interested in one sincle result.
-      $sourceid = $result->sourceid1;
-      $destids = $harvestSourceMigrationMap->lookupDestinationID(array($sourceid));
-      // We expect an array with one valid item. If not fallback to default
-      // "N/A".
-      if (is_array($destids) && count($destids) == 1 && isset($destids['destid1'])) {
-        $destid = array_pop($destids);
-        $result->dataset_link = l(t('Dataset link'), 'node/'. $destid);
-      }
-    }
-
-    $row = array(
-      'data' => array(
-        'msgid' => $result->msgid,
-        'sourceid1' => $result->sourceid1,
-        'dataset_link' => isset($result->dataset_link) ? $result->dataset_link : "N/A",
-        'message' => $result->message,
-      ),
-      'class' => array('harvest-error'),
-    );
-
-    $collapsible_items[$result->mlid][] = $row;
-  }
-
-  $build = array();
-  $collapsible_item_offset = 0;
-  // We can use the mlid key as the bases of the sorting. The bigger the mlid
-  // the more recent the harvest migrate event. Preserve the key.
-  $collapsible_items = array_reverse($collapsible_items, FALSE);
-  foreach ($collapsible_items as $collapsible_item_mlid => $collapsible_item) {
-    $collapsible_inner_table = array(
-      '#attached' => array(
-        'css' => array(),
-    ),
-    '#theme' => 'table',
+  // Add help text
+  $build['help'] = array(
     '#attributes' => array(
-      'class' => array(
-        'harvest-error-log-table',
-        'harvest-error-log-table-' . $collapsible_item_mlid,
-      ),
+      'class' => array('help-block'),
     ),
-    '#header' => $collapsible_inner_header,
-    '#rows' => $collapsible_item,
+    '#type' => 'markup',
+    '#markup' => t('Log of errors reported during harvesting from this source.'),
+    '#prefix' => '<span class="help-block">',
+    '#suffix' => '</span>',
   );
 
-    // Return properly styled output.
-    $handle = t('@errors_count Error(s) encountered on @date',
-      array(
-        '@errors_count' => count($collapsible_item),
-        '@date' => format_date(HarvestSource::getMigrationTimestampFromMlid($collapsible_item_mlid)),
-      ));
+  if(count($results)) { 
+    // Build the table rows.
+    $collapsible_items = array();
+    foreach ($results as $result) {
+      if (isset($result->sourceid1)){
+        // Lookup the dataset nid. lookupDestinationID() takes an array and
+        // returns an array, But really we are interested in one sincle result.
+        $sourceid = $result->sourceid1;
+        $destids = $harvestSourceMigrationMap->lookupDestinationID(array($sourceid));
+        // We expect an array with one valid item. If not fallback to default
+        // "N/A".
+        if (is_array($destids) && count($destids) == 1 && isset($destids['destid1'])) {
+          $destid = array_pop($destids);
+          $result->dataset_link = l(t('Dataset link'), 'node/'. $destid);
+        }
+      }
 
-    $build['collapsible_row_' . $collapsible_item_mlid] = array(
-      '#attached' => array(
-        'css' => array(
-          drupal_get_path('module', 'dkan_harvest') . '/css/dkan_harvest_pages_error_log_collapsible.css'
+      $row = array(
+        'data' => array(
+          'msgid' => $result->msgid,
+          'sourceid1' => $result->sourceid1,
+          'dataset_link' => isset($result->dataset_link) ? $result->dataset_link : "N/A",
+          'message' => $result->message,
         ),
-      ),
-      '#theme' => 'ctools_collapsible',
-      '#attributes' => array(
-        'class' => array(
-          'harvest-error-log-collapse'
-        ),
-      ),
-      '#handle' => $handle,
-      '#content' => drupal_render($collapsible_inner_table),
-      '#collapsed' => $collapsible_item_offset > 0 ? TRUE : FALSE,
-    );
+        'class' => array('harvest-error'),
+      );
 
-    $collapsible_item_offset++;
+      $collapsible_items[$result->mlid][] = $row;
+    }
+
+    $build = array();
+    $collapsible_item_offset = 0;
+    // We can use the mlid key as the bases of the sorting. The bigger the mlid
+    // the more recent the harvest migrate event. Preserve the key.
+    $collapsible_items = array_reverse($collapsible_items, FALSE);
+    foreach ($collapsible_items as $collapsible_item_mlid => $collapsible_item) {
+      $collapsible_inner_table = array(
+        '#attached' => array(
+          'css' => array(),
+        ),
+        '#theme' => 'table',
+        '#attributes' => array(
+          'class' => array(
+            'harvest-error-log-table',
+            'harvest-error-log-table-' . $collapsible_item_mlid,
+          ),
+        ),
+        '#header' => $collapsible_inner_header,
+        '#rows' => $collapsible_item,
+      );
+
+      // Return properly styled output.
+      $handle = t('@errors_count Error(s) encountered on @date',
+        array(
+          '@errors_count' => count($collapsible_item),
+          '@date' => format_date(HarvestSource::getMigrationTimestampFromMlid($collapsible_item_mlid)),
+        ));
+
+      $build['collapsible_row_' . $collapsible_item_mlid] = array(
+        '#attached' => array(
+          'css' => array(
+            drupal_get_path('module', 'dkan_harvest') . '/css/dkan_harvest_pages_error_log_collapsible.css'
+          ),
+        ),
+        '#theme' => 'ctools_collapsible',
+        '#attributes' => array(
+          'class' => array(
+            'harvest-error-log-collapse'
+          ),
+        ),
+        '#handle' => $handle,
+        '#content' => drupal_render($collapsible_inner_table),
+        '#collapsed' => $collapsible_item_offset > 0 ? TRUE : FALSE,
+      );
+
+      $collapsible_item_offset++;
+    }
+
+
+
+    // Attach the pager theme.
+    $build['pager_pager'] = array('#theme' => 'pager');
   }
-
-
-
-  // Attach the pager theme.
-  $build['pager_pager'] = array('#theme' => 'pager');
+  else {
+    $build['no_results'] = array(
+      '#markup' => '<em>No error messages available.</em>',   
+    );
+  }
 
   return $build;
 }

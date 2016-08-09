@@ -262,7 +262,7 @@ class HarvestSource {
    *
    * @return HarvestCache object or FALSE in case of error.
    */
-  public function cache($timestamp) {
+  public function cache($timestamp=NULL) {
 
     if (!isset($timestamp)) {
       $timestamp = microtime();
@@ -271,12 +271,18 @@ class HarvestSource {
     // Make sure the cache directory is cleared.
     $this->getCacheDir(TRUE);
 
-    // Get the cache callback for the source.
-    $harvestCache = call_user_func(
-      $this->type->cache_callback,
-      $this,
-      $timestamp
-    );
+    try {
+      // Get the cache callback for the source.
+      $harvestCache = call_user_func(
+        $this->type->cache_callback,
+        $this,
+        $timestamp
+      );
+    } catch (Exception $e) {
+      drupal_set_message(t('Harvest demo cache failed ').$e->getMessage(), 'error', FALSE);
+    }
+
+
 
     if (!isset($harvestCache)) {
       // Nothing to look for here.
