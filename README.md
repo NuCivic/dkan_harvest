@@ -1,75 +1,106 @@
-DKAN Harvest is a module that provides a common harvesting framework for Dkan
+DKAN Harvest is a module that provides a common harvesting framework for DKAN.
+To "harvest" data is to use the public feed or API of another data portal to 
+import items from that portal's catalog into your own. To cite a well-known
+example, [Data.gov](https://data.gov) harvests all of its datasets from the
+[data.json](https://project-open-data.cio.gov/v1.1/schema/) files of [hundreds
+of U.S. federal, state and local data portals](http://catalog.data.gov/harvest).
 extensions and adds a CLI and a WUI to DKAn to manage harvesting sources and
 jobs.
 
-### How does it works?
+DKAN Harvest is built on top of the widely-used
+[Migrate](https://www.drupal.org/project/migrate) framework for Drupal. It 
+follows a two-step process to import datasets:
 
-DKAN Harvest is built on top of the legendary
-[migrate](https://www.drupal.org/project/migrate) module that consume a source
-api to download the data locally to the local drupal `public://` and process it
-to create the associated `dataset` and `resource` DKAN nodes.
+1. Process a source URI and save resulting data locally to disk as JSON
+2. Perform migrations into DKAN with the locally cached JSON files, using mappings provided by the [DKAN Migrate Base](https://github.com/NuCivic/dkan_migrate_base) module.
 
-## Usage
+## Usage: Web Interface
+
 ### Add a Harvest Source
 
-Harvest Sources are available as content of type `harvest-source`. The easiest
-way, as an admin, to add a new harvest source node is to go to
-`node/add/harvest-source` and fill the form.
+Harvest Sources are nodes that store the source's URI and some additional 
+configuration. To create a new source, make sure you have a role with permissions
+to create Harvest Sources (administrators and site managers under default DKAN 
+Permissions), go to `node/add/harvest-source` and fill out the form.
 
-![Add Harvest Source](node_add_harvest_source.png)
+The Harvest Source form includes four multi-value fields to control the results of your harvest.
+
+* **Filters** restrict the datasets imported by a particular field. For instance, if you are harvesting a data.json source and want only to harvest health-related datasets, you might add a filter with "keyword" in the first text box, and "heatlh" in the second.
+* **Excludes** are the inverse of filters. For example, if you know there is one 
+publisher listed on the source whose datasets you do _not_ want to bring into your data portal, you might add "publisher" with value "Governor's Office of Terrible Data"
+* **Overrides** will replace values from the source when you harvest. For instance, if you want to take responsibility for the datasets once harvested and add your agency's name as the publisher, you might add "publisher" with your agency's name as the value.
+* **Defaults**   work the same as overrides, but will only be used if the relevant field is empty in the source
+
+![Add Harvest Source](images/node_add_harvest_source.png)
 
 If the Harvest Source type you are looking for is not available, please refer
 to the **Define a new Harvest Source Type** section in the developers docs.
 
 ### Run a Harvest from the Dashboard
 
-To run and manage harvest operations from the Web interface one can use the
-Dashboard available via `admin/dkan/harvest/dashboard`. This is a view of all
-available (added and published) harvest sources in the system. Apart from the
-title and the type additonal columns displaying the last time a harvest
-migration was run for a specific harvest source and the number of datsets
+To run and manage harvest operations from the web interface, navigate to
+ `admin/dkan/harvest/dashboard`. This is a view of all
+available (published) Harvest Sources in the system. Apart from the
+title and the source type, additonal columns displaying the last time a harvest
+migration was run for a specific source and the number of daatsets
 imported are available.
 
-![Harvest Dashboard](harvest_dashboard.png)
+![Harvest Dashboard](images/harvest_dashboard.png)
 
-To run a full harvest operation or a harvest cache operation or a harvest
-migration operation, select all or a number of harvest sources listed in the
-dashboard and select a task from the **Operations** dropdown.
+The dashboard allows you to select one or more sources and perform one of the following operations on it:
 
-![Harvest Dashboard Operations](harvest_dashboard_operations.png)
+* **Harvest (cache and migrate)** is the operation you are most likely to want to perform on this page. It will cache the source data locally and migrate that source data into your site content.
+* **Cache source(s)** will simply fetch the source data, apply the source configuration (filters, excludes, etc.) and cache the data locally without migrating. You may wish to do this to check for errors, or to refresh the preview available for each specific source (see the section on source pages below).
+* **Migrate source(s)** will migrate the current cache for the selected sources, no matter how old it is.
+
+![Harvest Dashboard Operations](images/harvest_dashboard_operations.png)
 
 ### Harvest Source Page
-#### Main page
 
-Harvest Source nodes have a public page that the public can use to view,
-filter, and search datasets harvested from a local or remote source. The nodes
-are accesable via the `harvest_source/<title>`url.
+Harvest Source nodes are viewable by the public, providing some basic metadata 
+for the source and listing all datasets harvested from that source. 
 
-![Harvest Source Page](harvest_source_page.png)
+![Harvest Source Page](images/harvest_source_page.png)
 
-Adding support for the harvest sources in the default DKAN search page is in the TODO list.
+Additional tabs are available to administrators and site managers:
 
-#### Event log
+#### Preview
 
-The event log page is accecable from the **Event Log** tab available on the
-Harvest Source page and provides a way to review the evolution of the harvest
-source during time.
+After you create or edit a source, an initial cache operation will be performed and you will be directed to the preview page. This page shows a list of dataset titles and identifiers now in the harvest cache, allowing you to perform a basic check on 
+your source configuration and make any adjustments before running the migration.
 
-![Harvest Source Event Log Page](harvest_source_event_log.png)
+#### Events
+
+The events tab on the Harvest Source page provides historical data on all harvests
+run on this source.
+
+![Harvest Source Event Log Page](images/harvest_source_event_log.png)
 
 The information is managed by the core `dkan_harvest` via a per-harvest source
 `migrate_log` table that tracks the number of datasets created, updated,
 failed, orphaned, and unchanged.
 
+#### Errors
+
+Similar to the Events tab, this shows a log of all errors recorded during harvesting on the source.
+
+#### Manage Datasets
+
+An administrative view that lets you sort and filter by certain harvesting metadata. The most powerful function on this page is to filter by "orphan" status. When a dataset that was harvested into your system previously is no longer
+provided in the source, it is considered "orphaned" on your site and unpublished.
+From the Manage Datasets screen, you can either permanently delete or re-publish
+orphan datasets.
+
 Presenting the event log via some easy to parse charts is in the TODO list.
-### Drush
+
+## Usage: Drush
 
 DKAN Harvest provides multiple drush commands to manage harvest sources and
 control harvest jobs. It is recommanded to pass the `--user=1` drush option to
 harvest operation (especially harvest migration jobs) to make sure that the
 entities created have a proper user as author.
 
-### List Harvest sources available
+#### List Harvest sources available
 
 ```sh
 # List all available Harvest Sources
@@ -120,7 +151,7 @@ $ drush --user=1 dkan-harvest-migrate test_harvest_source
 $ drush --user=1 dkan-hm test_harvest_source
 ```
 
-## Developer Documentations
+## Extending DKAN Harvest
 
 DKAN developers can use the api provided by DKAN Harvest to add support for
 additioanl harvest source types. The `dkan_harvest_datajson` module encapsulate
@@ -332,32 +363,3 @@ By default, DKAN Harvest will make sure that the harvested dataset node will be
 set to the `published` moderation state if the DKAN Workflow module is enabled
 on the DKAN site. This can be changed at the fields mapping level by overriding
 the `workbench_moderation_state_new` field.
-
-### Tests
-#### PHPUnit tests
-
-All the PHPUnit tests for DKAN Harvest are available in the
-`test/phpunit/` folder. All the dependencies are available in the `composer.json` file in the root folder. To run the tests:
-* Make sure that you are currently on a working DKAN site.
-* Change the `$path` variable in the `test/phpunit/boot.php`to point to the
-  current drupal root folder.
-* `composer install`
-* Inside the `test/phpunit` directory, run `../../bin/phpunit`
-
-#### Behat tests
-
-All the current Behat tests for DKAN Harvest are available in the `test/behat/`
-folder. All the dependencies are available in the `composer.json` file in the
-root folder. To run the tests:
-* Make sure that you are currently on a working DKAN site.
-* Change the `test/behat/behat.yml` to match your current envirement.
-* `composer install`
-* Inside the `test/behat` directory, run `../../bin/behat`
-
-## Todo's
-
-+ Move as much as possible from `DataJSONHarvest` class to **dkan_migrate_base** 's own `MigrateDataJsonDatasetBase`
-+ Create drupal admin page to subscribe sources of data.
-+ Better support for handling failed harvest migrations.
-+ Greater Test coverage.
-+ Extend drush commands.
