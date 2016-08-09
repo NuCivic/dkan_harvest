@@ -504,11 +504,10 @@ Off|Non-orphans only',
   $handler->display->display_options['fields']['nid']['label'] = '';
   $handler->display->display_options['fields']['nid']['exclude'] = TRUE;
   $handler->display->display_options['fields']['nid']['element_label_colon'] = FALSE;
-  /* Field: Content: Groups audience */
+  /* Field: Content: Publisher */
   $handler->display->display_options['fields']['og_group_ref']['id'] = 'og_group_ref';
   $handler->display->display_options['fields']['og_group_ref']['table'] = 'og_membership';
   $handler->display->display_options['fields']['og_group_ref']['field'] = 'og_group_ref';
-  $handler->display->display_options['fields']['og_group_ref']['label'] = 'Publisher';
   $handler->display->display_options['fields']['og_group_ref']['settings'] = array(
     'link' => 1,
   );
