@@ -84,7 +84,7 @@ class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
     // Get first migration registration.
     $harvest_test_source_local_dir = $sources['harvest_test_source_local_dir'];
     $migration_harvest_test_source_local_dir = dkan_harvest_get_migration($harvest_test_source_local_dir);
-    $this->assertEquals($harvest_test_source_local_dir, $migration_harvest_test_source_local_dir->getHarvestSource());
+    $this->assertEquals($harvest_test_source_local_dir, $migration_harvest_test_source_local_dir->getSource());
 
     // If we change the source (keeping the machine name) the migration should
     // have the updated harvest source.
@@ -92,7 +92,7 @@ class DkanHarvestTest extends \PHPUnit_Framework_TestCase {
     $harvest_test_source_local_dir->uri = DRUPAL_ROOT . "/" . drupal_get_path('module',
       'dkan_harvest') . "/test/phpunit/data/harvest_fictional_test_source/";
     $migration_harvest_test_source_second = dkan_harvest_get_migration($harvest_test_source_local_dir);
-    $this->assertEquals($harvest_test_source_local_dir, $migration_harvest_test_source_second->getHarvestSource());
+    $this->assertEquals($harvest_test_source_local_dir, $migration_harvest_test_source_second->getSource());
   }
 
   /**

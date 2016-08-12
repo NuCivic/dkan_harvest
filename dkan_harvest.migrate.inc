@@ -1114,13 +1114,6 @@ class HarvestMigration extends MigrateDKAN {
   }
 
   /**
-   * Getter for harvest source. This is mainly used for unittests.
-   */
-  public function getHarvestSource() {
-    return $this->dkanHarvestSource;
-  }
-
-  /**
    * Getter for the $logID variable. Mainly used for the HarvestMigrateSQLMap
    * class.
    */
