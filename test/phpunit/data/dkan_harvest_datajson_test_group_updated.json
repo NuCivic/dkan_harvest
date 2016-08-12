@@ -49,9 +49,9 @@
       "modified": "2016-07-21",
       "publisher": {
         "@type": "org:Organization",
-        "name": "TEST - State Economic Council"
+        "name": "TEST - State Economic Council Updated"
       },
-      "title": ["TEST - State Workforce by Generation (2011-2015)"]
+      "title": "TEST - State Workforce by Generation (2011-2015)"
     }
   ]
 }
