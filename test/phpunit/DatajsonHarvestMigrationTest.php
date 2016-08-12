@@ -10,6 +10,9 @@ include_once __DIR__ . '/includes/HarvestSourceDataJsonStub.php';
  */
 class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
 
+  // Keep track of nodes created during a test run that are not handled by migrations.
+  private $created_nodes = array();
+
   /**
    * {@inheritdoc}
    */
@@ -32,7 +35,7 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    *
    */
   public function testDatasetCount() {
-    $dataset_nids = $this->getTestDatasetNid();
+    $dataset_nids = $this->getTestDatasetNid(self::getOriginalTestSource());
     $this->assertEquals(1, count($dataset_nids));
 
     // Load the node emw.
@@ -268,7 +271,8 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
 
     // The number of managed datasets record should stay the same.
     $this->assertEquals(count($migrationAlternativeMap), '1');
-    // The number of nodes as a hole should not have changed.
+    // The number of nodes as a hole should be increased by 1 because a new group
+    // should be created.
     $globalDatasetCountAlternative = $this->getGlobalNodeCount();
     $this->assertEquals($globalDatasetCountOld, $globalDatasetCountAlternative);
 
@@ -591,9 +595,81 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
   }
 
   /**
+   * @depends testDatasetCount
+   */
+  public function testGroups($dataset) {
+    $expected_groups = array('TEST - State Economic Council');
+
+    // Check that the dataset has the expected groups.
+    $dataset_groups = $this->getNodeGroups($dataset);
+    $this->assertEquals($expected_groups, array_values($dataset_groups));
+
+    // Check that all resources associated with the dataset have the same groups
+    // as the dataset.
+    foreach ($dataset->field_resources->getIterator() as $delta => $resource) {
+      $resource_groups = $this->getNodeGroups($resource);
+      $this->assertEquals($expected_groups, array_values($resource_groups));
+    }
+
+    // Append the dataset groups in the list of content that was created and
+    // need to be deleted after test is completed.
+    $this->created_nodes = array_merge($this->created_nodes, array_keys($dataset_groups));
+  }
+
+  /**
+   * @depends testDatasetCount
+   *
+   * When a dataset group is updated the following should happen:
+   *   - The dataset should be associated with the new groups.
+   *   - All the resources associated with the dataset should also be modified
+   *     with the new group.
+   */
+  public function testGroupsUpdate($dataset) {
+
+    // Append the current dataset groups in the list of content that was created and
+    // need to be deleted after test is completed.
+    $dataset_groups = $this->getNodeGroups($dataset);
+    $this->created_nodes = array_merge($this->created_nodes, array_keys($dataset_groups));
+
+    // Check that the number of groups in the dataset is '1'.
+    $this->assertEquals(count($dataset_groups), '1');
+
+    // Rerun the harvest (cache + migration) with the group updated source.
+    dkan_harvest_cache_sources(array(self::getGroupUpdatedTestSource()));
+    dkan_harvest_migrate_sources(array(self::getGroupUpdatedTestSource()));
+
+    // Get updated dataset.
+    $dataset_nids = $this->getTestDatasetNid(self::getGroupUpdatedTestSource());
+    $dataset_node = entity_load_single('node', array_pop($dataset_nids));
+    $dataset = entity_metadata_wrapper('node', $dataset_node);
+
+    // Groups should've changed. Append the dataset groups in the list of content
+    // that was created and need to be deleted after test is completed.
+    $this->created_nodes = array_merge($this->created_nodes, array_keys($dataset_groups));
+
+    // Check that the dataset got the groups updated.
+    $expected_groups = array('TEST - State Economic Council Updated');
+    $dataset_groups = $this->getNodeGroups($dataset);
+    $this->assertEquals($expected_groups, array_values($dataset_groups));
+
+    // Check that the number of groups associated with the dataset is still '1'.
+    $this->assertEquals(count($dataset_groups), '1');
+
+    // Check that the group was updated on all resources.
+    foreach ($dataset->field_resources->getIterator() as $delta => $resource) {
+      $resource_groups = $this->getNodeGroups($resource);
+      $this->assertEquals($expected_groups, array_values($resource_groups));
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function tearDown() {
+    // Delete all nodes that were created during the test and are not handled by migrations.
+    node_delete_multiple(array_unique($this->created_nodes));
+    // Empty values.
+    $this->created_nodes = array();
   }
 
   /**
@@ -628,6 +704,21 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
   /**
    * Test Harvest Source.
    */
+  public static function getGroupUpdatedTestSource() {
+    return new HarvestSource(
+      'dkan_harvest_datajson_test',
+      array(
+        'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
+          "/test/phpunit/data/dkan_harvest_datajson_test_group_updated.json",
+        'type' => 'datajson_v1_1_json',
+        'label' => 'Dkan Harvest datajson Test Source',
+      )
+    );
+  }
+
+  /**
+   * Test Harvest Source.
+   */
   public static function getErrorTestSource() {
     return new HarvestSourceDataJsonStub(DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
       "/test/phpunit/data/dkan_harvest_datajson_test_error.json");
@@ -644,8 +735,8 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
   /**
    *
    */
-  private function getTestDatasetNid() {
-    $migration = dkan_harvest_get_migration(self::getOriginalTestSource());
+  private function getTestDatasetNid($source) {
+    $migration = dkan_harvest_get_migration($source);
 
     if ($migration) {
       $query = $migration->getMap()->getConnection()->select($migration->getMap()->getMapTable(), 'map')
@@ -739,5 +830,18 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
     }
 
     return $resources;
+  }
+
+  /**
+   * Returns an array with the list of groups associated with the dataset.
+   */
+  private function getNodeGroups($node) {
+    $groups = array();
+
+    foreach ($node->og_group_ref->getIterator() as $delta => $group) {
+      $groups[$group->getIdentifier()] = $group->title->value();
+    }
+
+    return $groups;
   }
 }
