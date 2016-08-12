@@ -705,15 +705,8 @@ class DatajsonHarvestMigrationTest extends PHPUnit_Framework_TestCase {
    * Test Harvest Source.
    */
   public static function getGroupUpdatedTestSource() {
-    return new HarvestSource(
-      'dkan_harvest_datajson_test',
-      array(
-        'uri' => DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
-          "/test/phpunit/data/dkan_harvest_datajson_test_group_updated.json",
-        'type' => 'datajson_v1_1_json',
-        'label' => 'Dkan Harvest datajson Test Source',
-      )
-    );
+    return new HarvestSourceDataJsonStub(DRUPAL_ROOT . "/" . drupal_get_path('module', 'dkan_harvest') .
+      "/test/phpunit/data/dkan_harvest_datajson_test_group_updated.json");
   }
 
   /**
