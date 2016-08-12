@@ -3,7 +3,7 @@
 DKAN_MODULE=`ls *.info | cut -d'.' -f1`
 
 # DKAN branch or tag to use.
-DKAN_VERSION="7.x-1.x"
+DKAN_VERSION="harvest_dkan_integration"
 
 COMPOSER_PATH="$HOME/.config/composer/vendor/bin"
 
@@ -56,7 +56,10 @@ else
   ahoy dkan reinstall
 fi
 
-ahoy drush en $DKAN_MODULE -y
+# If there's submodules available, make sure they are enabled.
+SUBMODULES=""
+if [ -d "$DKAN_MODULE/modules" ]; then
+  SUBMODULES=`ls $DKAN_MODULE/modules | xargs`
+fi
 
- #Fix for behat bug not recognizing symlinked feature files or files outside it's root. See https://jira.govdelivery.com/browse/CIVIC-1005
-#cp dkan_workflow/test/features/dkan_workflow.feature dkan/test/features/.
+ahoy drush en $DKAN_MODULE $SUBMODULES -y
