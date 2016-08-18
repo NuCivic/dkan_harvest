@@ -33,7 +33,6 @@ function dkan_harvest_permission() {
  */
 function dkan_harvest_menu() {
   $items = array();
-  $weight = 0;
 
   $items['node/%node/harvest-events'] = array(
     'title' => t('Event'),
@@ -43,7 +42,7 @@ function dkan_harvest_menu() {
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dkan_harvest.pages.inc',
-    'weight' => $weight++,
+    'weight' => 3,
   );
 
   $items['node/%node/harvest-errors'] = array(
@@ -54,7 +53,7 @@ function dkan_harvest_menu() {
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dkan_harvest.pages.inc',
-    'weight' => $weight++,
+    'weight' => 4,
   );
 
   $items['node/%node/harvest-preview'] = array(
@@ -65,7 +64,7 @@ function dkan_harvest_menu() {
     'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'file' => 'dkan_harvest.pages.inc',
-    'weight' => $weight++,
+    'weight' => 1,
   );
 
   return $items;
