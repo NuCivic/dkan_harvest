@@ -47,8 +47,7 @@ function dkan_harvest_datajson_cache(HarvestSource $source, $harvest_updatetime)
     )
   );
 
-  // This supports local and remote URIs.
-  $remote = file_get_contents($source->uri, 0, $context);
+  $remote = @file_get_contents($source->uri, 0, $context);
 
   if ($remote) {
     $data = FALSE;

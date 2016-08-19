@@ -666,11 +666,11 @@ function dkan_harvest_field_default_field_instances() {
   t('Filters');
   t('Machine Name');
   t('Notes');
+  t('Orphan');
   t('Overrides');
   t('Set a default value to be used when the specified field is empty.');
   t('Source URI');
   t('Type');
-  t('Orphan');
   t('Type of source we are harvesting.');
 
   return $field_instances;

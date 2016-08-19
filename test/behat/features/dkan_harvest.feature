@@ -98,11 +98,14 @@ Feature: Dkan Harvest
   And I am logged in as a "<role>"
   And I am on the "Source one" page
   Given The "source_one" source is harvested
-  Then I should see the link "Event"
-  When I click "Event"
+  Then I should see the link "Events"
+  Then I should see the link "Errors"
+  When I click "Events"
   Then The page status should be 'ok'
   And I should see a table with a class name "harvest-event-log"
   And the table with the class name "harvest-event-log" should have 1 row
+  Then I click "Errors"
+  And I should see the text "No error messages available."
 
   Examples:
   | role               |

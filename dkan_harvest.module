@@ -111,7 +111,7 @@ function dkan_harvest_menu() {
   $items = array();
 
   $items['node/%node/harvest-events'] = array(
-    'title' => t('Event'),
+    'title' => t('Events'),
     'page callback' => 'dkan_harvest_page_event_log',
     'page arguments' => array(1),
     'access callback' => 'dkan_harvest_page_tab_access',
@@ -122,7 +122,7 @@ function dkan_harvest_menu() {
   );
 
   $items['node/%node/harvest-errors'] = array(
-    'title' => t('Error'),
+    'title' => t('Errors'),
     'page callback' => 'dkan_harvest_page_error_log',
     'page arguments' => array(1),
     'access callback' => 'dkan_harvest_page_tab_access',
@@ -185,24 +185,26 @@ function dkan_harvest_page_preview($node) {
   if (!$harvestCache) {
     // Could not cache the source. issue?
     $message = t("Failed to fetch the source. Please make sure that the source
-is reachable and the filters are setup correctly.");
+is reachable and the filters are set up correctly.");
     drupal_set_message($message, 'error', FALSE);
+    $output = '<em>Preview is not available for this source. Please check the above errors.</em>';
   }
   else {
     foreach ($harvestCache->getSaved() as $id => $dataset_item) {
       $rows[] = array($id, $dataset_item['title']);
     }
+
+    $form_import = drupal_get_form('dkan_harvest_harvest_now_form', $node);
+    $caption = t('Harvesting from this source as it is currently configured will
+  import the datasets listed below into this data portal. Click "Edit" above to
+  change the source\'s configuration, click the "Harvest now" button at the
+  bottom of the page to run the harvest immediately, or simply continue working
+  and the harvest will be performed on schedule.');
+    $header = array(t('Identifier'), t('Title'));
+    $output .= theme('table', array('rows' => $rows, 'header' => $header, 'caption' => $caption));
+    $output .= drupal_render($form_import);
   }
 
-  $form_import = drupal_get_form('dkan_harvest_harvest_now_form', $node);
-  $caption = t('Harvesting from this source as it is currently configured will
-import the datasets listed below into this data portal. Click "Edit" above to
-change the source\'s configuration, click the "Harvest now" button at the
-bottom of the page to run the harvest immediately, or simply continue working
-and the harvest will be performed on schedule.');
-  $header = array(t('Identifier'), t('Title'));
-  $output .= theme('table', array('rows' => $rows, 'header' => $header, 'caption' => $caption));
-  $output .= drupal_render($form_import);
   return $output;
 }
 
