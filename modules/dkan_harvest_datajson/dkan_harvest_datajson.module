@@ -64,8 +64,9 @@ function dkan_harvest_datajson_cache(HarvestSource $source, $harvest_updatetime)
 
     // Filter and save the data gathered from the endpoint.
     if ($data) {
-      return dkan_harvest_datajson_cache_pod_v1_1_json($data, $source,
+      $v = dkan_harvest_datajson_cache_pod_v1_1_json($data, $source,
         $harvest_updatetime);
+      return $v;
     }
   }
 }
@@ -93,17 +94,11 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
       // filtering criteria.
       $accept = FALSE;
       foreach ($filters as $filter => $value) {
-        if (isset($dataset[$filter]) && is_array($value) && count(array_intersect($value, $dataset[$filter])) > 0) {
+        if (!empty($dataset[$filter]) && !empty($value) && count(array_intersect((array)$value, (array)$dataset[$filter])) > 0) {
           // The value to filter is an array and does intersect with the
           // dataset value. ACCEPT
           $accept = TRUE;
         }
-        elseif (isset($dataset[$filter]) && $value == $dataset[$filter]) {
-          // The value to filter is not an array and but is set in the datset.
-          // ACCEPT.
-          $accept = TRUE;
-        }
-
         if ($accept) {
           // Dataset have at least one filter that match. No need for more
           // proccecing.
@@ -119,7 +114,6 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
         // This dataset will be dropped from here on. Add to the processed count.
         $harvestCache->setCacheEntryProcessed($dataset_key, $dataset['title']);
       }
-
       // Drop the dataset if excluded.
       return $accept;
     });
@@ -134,12 +128,8 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
       // excluding criteria.
       $accept= TRUE;
       foreach ($excludes as $exclude => $value) {
-        if (isset($dataset[$exclude]) && is_array($value) && count(array_intersect($value, $dataset[$exclude])) > 0) {
+        if (!empty($dataset[$exclude]) && count(array_intersect((array)$value, (array)$dataset[$exclude])) > 0) {
           // The value to exclude is an array and does intersect with the dataset value. Drop.
-          $accept = FALSE;
-        }
-        elseif (isset($dataset[$exclude]) && $value == $dataset[$exclude]) {
-          // The value to exclude is not an array and is set in the datset. Drop.
           $accept = FALSE;
         }
 
@@ -162,8 +152,26 @@ function dkan_harvest_datajson_cache_pod_v1_1_json(Array $data, HarvestSource $s
     });
   }
 
-  // TODO add defaults and overriddes?
+  // Override field values.
+  $overrides = $source->overrides;
+  $datasets = array_map(function($dataset) use($overrides, &$harvestCache){
+    foreach ($overrides as $override => $value) {
+      $dataset[$override] = $value[0];
+    }
+    return $dataset;
+  }, $datasets);
 
+  // Set default values for empty fields.
+  $defaults = $source->defaults;
+  $datasets = array_map(function($dataset) use($defaults, &$harvestCache){
+    foreach ($defaults as $default => $value) {
+      if(!isset($dataset[$default]))
+        $dataset[$default] = $value[0];
+    }
+    return $dataset;
+  }, $datasets);
+
+  // TODO add defaults and overriddes?
   foreach ($datasets as $dataset) {
     $identifier = dkan_harvest_datajson_prepare_item_id($dataset['identifier']);
     $dataset_file = implode('/', array($source->getCacheDir(), $identifier));

@@ -17,6 +17,82 @@ define(
   'dkan_harvest_migrate_'
 );
 
+
+/**
+ * Implements hook_block_info().
+ */
+function dkan_harvest_block_info() {
+  $blocks['harvest_source_summary'] = array(
+    'info' => t('Harvest Source Summary'),
+    'cache' => DRUPAL_CACHE_PER_PAGE
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function dkan_harvest_block_view($delta = '') {
+  switch ($delta) {
+    case 'harvest_source_summary':
+      $output = '';
+      $node = menu_get_object();
+      $module_path = drupal_get_path('module', 'dkan_harvest');
+      drupal_add_js($module_path . '/js/harvest_source_summary', array());
+      $wrapper = entity_metadata_wrapper('node', $node);
+      $filters = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_filters->value());
+      $excludes = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_excludes->value());
+      $overrides = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_overrides->value());
+      $defaults = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_defaults->value());
+      $count = dkan_harvest_datasets_count($node);
+      $source_field = theme('textfield', array(
+        'element' => array(
+          '#attributes' => array(
+            'id' => 'harvest_source_summary_uri',
+            'class' => array('form-control'),
+            'value' => $wrapper->field_dkan_harvest_source_uri->value()
+          ),
+          '#autocomplete_path' => FALSE
+        )
+      ));
+
+      $output .= '<div class="form-group"><label>Source: </label>' . $source_field . '</div>';
+      $output .= $filters;
+      $output .= $excludes;
+      $output .= $overrides;
+      $output .= $defaults;
+      $output .= '<div><strong>Datasets: </strong>' . $count . '</div>';
+
+      return array(
+        'subject' => t('Harvest Source Summary'),
+        'content' => $output,
+      );
+      break;
+  }
+}
+
+/**
+ * Render field multiple (filters, excludes and overrides)
+ */
+function dkan_harvest_render_field_multiple($field) {
+  $output = '';
+  foreach ($field as $key => $value) {
+    $output .= '<div><strong>' . t($value['first']) . ': </strong>' .$value['second'] . '</div>';
+  }
+  return $output;
+}
+
+
+/**
+ * Retrieve datasets given a resource.
+ */
+function dkan_harvest_datasets_count($source) {
+  $source = HarvestSource::getHarvestSourceFromNode($source);
+  $cached = $source->cache();
+  return count($cached->processed);
+}
+
+
 /**
  * Implements hook_permission().
  */
@@ -113,7 +189,7 @@ is reachable and the filters are setup correctly.");
     drupal_set_message($message, 'error', FALSE);
   }
   else {
-    foreach ($harvestCache->getProcessed() as $id => $dataset_item) {
+    foreach ($harvestCache->getSaved() as $id => $dataset_item) {
       $rows[] = array($id, $dataset_item['title']);
     }
   }
