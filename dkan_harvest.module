@@ -17,6 +17,13 @@ define(
   'dkan_harvest_migrate_'
 );
 
+/**
+ * Implements hook_preprocess_html().
+ */
+function dkan_harvest_preprocess_html(&$vars) {
+  $path = drupal_get_path('module', 'dkan_harvest');
+  drupal_add_css($path . '/css/dkan_harvest.css');
+}
 
 /**
  * Implements hook_block_info().
@@ -37,31 +44,48 @@ function dkan_harvest_block_view($delta = '') {
     case 'harvest_source_summary':
       $output = '';
       $node = menu_get_object();
-      $module_path = drupal_get_path('module', 'dkan_harvest');
-      drupal_add_js($module_path . '/js/harvest_source_summary', array());
-      $wrapper = entity_metadata_wrapper('node', $node);
-      $filters = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_filters->value());
-      $excludes = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_excludes->value());
-      $overrides = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_overrides->value());
-      $defaults = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_defaults->value());
-      $count = dkan_harvest_datasets_count($node);
-      $source_field = theme('textfield', array(
-        'element' => array(
-          '#attributes' => array(
-            'id' => 'harvest_source_summary_uri',
-            'class' => array('form-control'),
-            'value' => $wrapper->field_dkan_harvest_source_uri->value()
-          ),
-          '#autocomplete_path' => FALSE
-        )
-      ));
-
-      $output .= '<div class="form-group"><label>Source: </label>' . $source_field . '</div>';
-      $output .= $filters;
-      $output .= $excludes;
-      $output .= $overrides;
-      $output .= $defaults;
-      $output .= '<div><strong>Datasets: </strong>' . $count . '</div>';
+      if(isset($node->nid)) {
+        $module_path = drupal_get_path('module', 'dkan_harvest');
+        drupal_add_js($module_path . '/js/harvest_source_summary', array());
+        $wrapper = entity_metadata_wrapper('node', $node);
+        $filters = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_filters->value());
+        $excludes = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_excludes->value());
+        $overrides = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_overrides->value());
+        $defaults = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_defaults->value());
+        $count = dkan_harvest_datasets_count($node);
+        $source_field = theme('textfield', array(
+          'element' => array(
+            '#attributes' => array(
+              'id' => 'harvest_source_summary_uri',
+              'class' => array('form-control'),
+              'value' => $wrapper->field_dkan_harvest_source_uri->value()
+            ),
+            '#autocomplete_path' => FALSE
+          )
+        ));
+        $output .= '<div class="form-group"><label>Source: </label>' . $source_field . '</div>';
+        $output .= '<div><strong>Datasets: </strong>' . $count . '</div>';
+        if(!empty($filters) || !empty($excludes) || !empty($overrides) || !empty($defaults)) {
+          $output .= '<div class="summary-details">';
+          if(!empty($filters)) {
+            $output .= "<h6>Filters</h6>";
+            $output .= $filters;
+          }
+          if(!empty($excludes)) {
+            $output .= "<h6>Excludes</h6>";
+            $output .= $excludes;
+          }
+          if(!empty($overrides)) {
+            $output .= "<h6>Overrides</h6>";
+            $output .= $overrides;
+          }
+          if(!empty($defaults)) {
+            $output .= "<h6>Defaults</h6>";
+            $output .= $defaults;
+          }
+          $output .= '</div>';
+        }
+      }
 
       return array(
         'subject' => t('Harvest Source Summary'),
