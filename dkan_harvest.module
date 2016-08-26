@@ -18,11 +18,80 @@ define(
 );
 
 /**
- * Implements hook_preprocess_html().
+ * Implements hook_preprocess_page().
  */
-function dkan_harvest_preprocess_html(&$vars) {
+function dkan_harvest_preprocess_page(&$vars) {
   $path = drupal_get_path('module', 'dkan_harvest');
-  drupal_add_css($path . '/css/dkan_harvest.css');
+  if($vars['node']->type == 'harvest_source') {
+    drupal_add_css($path . '/css/dkan_harvest.css');
+    drupal_add_js($path . '/js/harvest_source_summary.js');
+  }
+}
+
+// Implements hook_theme
+function dkan_harvest_theme(){
+  return array(
+    'dkan_harvest_source_summary' => array(
+      'variables' => array(
+        'output' => NULL,
+        'filters' => NULL,
+        'excludes' => NULL,
+        'overrides' => NULL,
+        'defaults' => NULL,
+        'count' => NULL,
+        'source_field' => NULL,
+      ),
+    ),
+  );
+}
+
+/**
+ * Theme function to create harvest source summary block.
+ */
+function theme_dkan_harvest_source_summary(&$vars) {
+  $output = '';
+  $node = menu_get_object();
+  if(isset($node->nid)) {
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $filters = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_filters->value());
+    $excludes = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_excludes->value());
+    $overrides = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_overrides->value());
+    $defaults = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_defaults->value());
+    $count = dkan_harvest_datasets_count($node);
+    $source_field = theme('textfield', array(
+      'element' => array(
+        '#attributes' => array(
+          'id' => 'harvest_source_summary_uri',
+          'class' => array('form-control'),
+          'value' => $wrapper->field_dkan_harvest_source_uri->value()
+        ),
+        '#autocomplete_path' => FALSE
+      )
+    ));
+    $output .= '<div class="form-group"><label>' . t('Source') . ': </label>' . $source_field . '</div>';
+    $output .= '<div><strong>' . t('Datasets') . ': </strong>' . $count . '</div>';
+    if(!empty($filters) || !empty($excludes) || !empty($overrides) || !empty($defaults)) {
+      $output .= '<div class="summary-details">';
+      if(!empty($filters)) {
+        $output .= '<h6>' . t('Filters') . '</h6>';
+        $output .= $filters;
+      }
+      if(!empty($excludes)) {
+        $output .= '<h6>' . t('Excludes') . '</h6>';
+        $output .= $excludes;
+      }
+      if(!empty($overrides)) {
+        $output .= '<h6>' . t('Overrides') . '</h6>';
+        $output .= $overrides;
+      }
+      if(!empty($defaults)) {
+        $output .= '<h6>' . t('Defaults') . '</h6>';
+        $output .= $defaults;
+      }
+      $output .= '</div>';
+    }
+  }
+  return $output;
 }
 
 /**
@@ -42,54 +111,9 @@ function dkan_harvest_block_info() {
 function dkan_harvest_block_view($delta = '') {
   switch ($delta) {
     case 'harvest_source_summary':
-      $output = '';
-      $node = menu_get_object();
-      if(isset($node->nid)) {
-        $module_path = drupal_get_path('module', 'dkan_harvest');
-        drupal_add_js($module_path . '/js/harvest_source_summary', array());
-        $wrapper = entity_metadata_wrapper('node', $node);
-        $filters = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_filters->value());
-        $excludes = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_excludes->value());
-        $overrides = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_overrides->value());
-        $defaults = dkan_harvest_render_field_multiple($wrapper->field_dkan_harvest_defaults->value());
-        $count = dkan_harvest_datasets_count($node);
-        $source_field = theme('textfield', array(
-          'element' => array(
-            '#attributes' => array(
-              'id' => 'harvest_source_summary_uri',
-              'class' => array('form-control'),
-              'value' => $wrapper->field_dkan_harvest_source_uri->value()
-            ),
-            '#autocomplete_path' => FALSE
-          )
-        ));
-        $output .= '<div class="form-group"><label>Source: </label>' . $source_field . '</div>';
-        $output .= '<div><strong>Datasets: </strong>' . $count . '</div>';
-        if(!empty($filters) || !empty($excludes) || !empty($overrides) || !empty($defaults)) {
-          $output .= '<div class="summary-details">';
-          if(!empty($filters)) {
-            $output .= "<h6>Filters</h6>";
-            $output .= $filters;
-          }
-          if(!empty($excludes)) {
-            $output .= "<h6>Excludes</h6>";
-            $output .= $excludes;
-          }
-          if(!empty($overrides)) {
-            $output .= "<h6>Overrides</h6>";
-            $output .= $overrides;
-          }
-          if(!empty($defaults)) {
-            $output .= "<h6>Defaults</h6>";
-            $output .= $defaults;
-          }
-          $output .= '</div>';
-        }
-      }
-
       return array(
         'subject' => t('Harvest Source Summary'),
-        'content' => $output,
+        'content' => theme('dkan_harvest_source_summary'),
       );
       break;
   }
@@ -106,7 +130,6 @@ function dkan_harvest_render_field_multiple($field) {
   return $output;
 }
 
-
 /**
  * Retrieve datasets given a resource.
  */
@@ -115,7 +138,6 @@ function dkan_harvest_datasets_count($source) {
   $cached = $source->cache();
   return count($cached->processed);
 }
-
 
 /**
  * Implements hook_permission().
