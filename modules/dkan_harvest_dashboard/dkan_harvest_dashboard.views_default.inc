@@ -99,6 +99,13 @@ function dkan_harvest_dashboard_views_default_views() {
       'override_label' => 0,
       'label' => '',
     ),
+    'action::views_bulk_operations_delete_item' => array(
+      'selected' => 1,
+      'postpone_processing' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
     'rules_component::rules_dkan_harvest_source_cache_and_migrate' => array(
       'selected' => 1,
       'postpone_processing' => 0,
@@ -504,10 +511,11 @@ Off|Non-orphans only',
   $handler->display->display_options['fields']['nid']['label'] = '';
   $handler->display->display_options['fields']['nid']['exclude'] = TRUE;
   $handler->display->display_options['fields']['nid']['element_label_colon'] = FALSE;
-  /* Field: Content: Publisher */
+  /* Field: Content: Groups audience */
   $handler->display->display_options['fields']['og_group_ref']['id'] = 'og_group_ref';
   $handler->display->display_options['fields']['og_group_ref']['table'] = 'og_membership';
   $handler->display->display_options['fields']['og_group_ref']['field'] = 'og_group_ref';
+  $handler->display->display_options['fields']['og_group_ref']['label'] = 'Group';
   $handler->display->display_options['fields']['og_group_ref']['settings'] = array(
     'link' => 1,
   );
@@ -573,7 +581,7 @@ Off|Non-orphans only',
   $handler->display->display_options['filters']['created']['operator'] = 'between';
   $handler->display->display_options['filters']['created']['exposed'] = TRUE;
   $handler->display->display_options['filters']['created']['expose']['operator_id'] = 'created_op';
-  $handler->display->display_options['filters']['created']['expose']['label'] = 'Post date';
+  $handler->display->display_options['filters']['created']['expose']['label'] = 'Created Date';
   $handler->display->display_options['filters']['created']['expose']['operator'] = 'created_op';
   $handler->display->display_options['filters']['created']['expose']['identifier'] = 'created';
   $handler->display->display_options['filters']['created']['expose']['remember_roles'] = array(
@@ -599,7 +607,7 @@ Off|Non-orphans only',
   $handler->display->display_options['filters']['changed']['operator'] = 'between';
   $handler->display->display_options['filters']['changed']['exposed'] = TRUE;
   $handler->display->display_options['filters']['changed']['expose']['operator_id'] = 'changed_op';
-  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Update Date';
+  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Updated Date';
   $handler->display->display_options['filters']['changed']['expose']['operator'] = 'changed_op';
   $handler->display->display_options['filters']['changed']['expose']['identifier'] = 'changed';
   $handler->display->display_options['filters']['changed']['expose']['remember_roles'] = array(
@@ -662,7 +670,7 @@ Off|Non-orphans only',
   $handler->display->display_options['filters']['created']['operator'] = 'between';
   $handler->display->display_options['filters']['created']['exposed'] = TRUE;
   $handler->display->display_options['filters']['created']['expose']['operator_id'] = 'created_op';
-  $handler->display->display_options['filters']['created']['expose']['label'] = 'Post date';
+  $handler->display->display_options['filters']['created']['expose']['label'] = 'Created Date';
   $handler->display->display_options['filters']['created']['expose']['operator'] = 'created_op';
   $handler->display->display_options['filters']['created']['expose']['identifier'] = 'created';
   $handler->display->display_options['filters']['created']['expose']['remember_roles'] = array(
@@ -688,7 +696,7 @@ Off|Non-orphans only',
   $handler->display->display_options['filters']['changed']['operator'] = 'between';
   $handler->display->display_options['filters']['changed']['exposed'] = TRUE;
   $handler->display->display_options['filters']['changed']['expose']['operator_id'] = 'changed_op';
-  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Updated date';
+  $handler->display->display_options['filters']['changed']['expose']['label'] = 'Updated Date';
   $handler->display->display_options['filters']['changed']['expose']['operator'] = 'changed_op';
   $handler->display->display_options['filters']['changed']['expose']['identifier'] = 'changed';
   $handler->display->display_options['filters']['changed']['expose']['remember_roles'] = array(
@@ -769,7 +777,7 @@ Off|Non-orphans only',
   $handler->display->display_options['path'] = 'node/%/datasets';
   $handler->display->display_options['menu']['type'] = 'tab';
   $handler->display->display_options['menu']['title'] = 'Manage Datasets';
-  $handler->display->display_options['menu']['weight'] = '0';
+  $handler->display->display_options['menu']['weight'] = 2;
   $handler->display->display_options['menu']['context'] = 0;
   $handler->display->display_options['menu']['context_only_inline'] = 0;
   $export['dkan_harvest_datasets'] = $view;
