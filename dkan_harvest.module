@@ -270,7 +270,20 @@ function dkan_harvest_harvest_now_form_submit($form, &$form_state) {
   $harvestSource = HarvestSource::getHarvestSourceFromNode($form['#node']);
   dkan_harvest_cache_sources(array($harvestSource));
   dkan_harvest_migrate_sources(array($harvestSource));
+  dkan_harvest_message_cleanup();
   $form_state['redirect'] = 'admin/dkan/harvest/dashboard';
+}
+
+/**
+ * Do not display 'Groups were updated on X resources' messages when harvesting datasets.
+*/
+function dkan_harvest_message_cleanup() {
+  $orig_messages = drupal_get_messages('status') + array('status' => array());
+  foreach ($orig_messages['status'] as $message) {
+    if(!preg_match('/\bgroups\b/i', $message)) {
+      drupal_set_message($message, 'status');
+    }
+  }
 }
 
 /**
