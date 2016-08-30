@@ -5,12 +5,18 @@
     bootstrap="boot.php"
     colors="true">
   <testsuites>
-    <testsuite name="DKAN Harvest Test Suite">
-      <directory>.</directory>
+    <testsuite name="Dkan Harvest Test Suite">
+      <file>DatajsonHarvestMigrationTest.php</file>
+      <file>DkanHarvestDataJsonTest.php</file>
+      <file>DkanHarvestSourcesTest.php</file>
+      <file>DkanHarvestTest.php</file>
+      <file>HarvestSourceTest.php</file>
+      <file>HarvestSourceTypeTest.php</file>
     </testsuite>
   </testsuites>
 
   <php>
+    <ini name="display_errors" value="true"/>
     <!-- These variables may alternatively be set as bash environment variables. -->
 
     <!-- Drupal major version to run tests over -->
