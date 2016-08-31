@@ -135,8 +135,8 @@ function dkan_harvest_render_field_multiple($field) {
  */
 function dkan_harvest_datasets_count($source) {
   $source = HarvestSource::getHarvestSourceFromNode($source);
-  $cached = $source->cache();
-  return count($cached->processed);
+  $count = HarvestSource::getMigrationCountFromMachineName($source->machine_name);
+  return $count;
 }
 
 /**
