@@ -17,6 +17,10 @@ define(
   'dkan_harvest_migrate_'
 );
 
+define('DELETE_CONTENT', 0);
+define('UNPUBLISH_CONTENT', 1);
+define('ORPHAN_CONTENT', 2);
+
 /**
  * Implements hook_preprocess_page().
  */
@@ -792,4 +796,123 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
  */
 function dkan_harvest_node_save_redirect_submit($form, &$form_state) {
   $form_state['redirect'] = 'node/' . $form_state['nid'] . '/harvest-preview';
+}
+
+/**
+ * Function used to process all the datasets (and its resources) associated
+ * with a source.
+ *
+ * @param $source_id The ID of the Source.
+ * @param $dataset_op The operation that needs to be executed over the datasets:
+ *    'delete', 'unpublish' and 'orphan'.
+ */
+function dkan_harvest_process_source_datasets($sources, $dataset_op) {
+
+  // Get the list of affected content.
+  $affected_content = dkan_harvest_get_sources_content($sources);
+
+  if (!empty($affected_content)) {
+    // Update or delete nodes based on the specified operation.
+    $batch_operations = array();
+    foreach ($affected_content as $content) {
+      $batch_operations[] = array(
+        'dkan_harvest_process_content',
+        array($content, $dataset_op)
+      );
+    }
+    // Setup batch process.
+    $batch = array(
+      'operations' => $batch_operations,
+      'title' => t('Deleting selected Harvest Sources and updating associated content...'),
+      'progress_message' => t('Processed @current out of @total.'),
+      'error_message' => t('An error ocurred while processing the content.'),
+    );
+    batch_set($batch);
+  }
+}
+
+/**
+ * Returns the content (datasets and resources) associated with specified sources.
+ *
+ * @param array $sources An array with the source IDs.
+ */
+function dkan_harvest_get_sources_content($sources) {
+  $datasets = array();
+  $resources = array();
+
+  // Get all the datasets associated with the sources.
+  foreach ($sources as $source) {
+    $datasets = array_merge($datasets, dkan_harvest_get_datasets_from_source($source));
+  }
+
+  // Get all the resources associated with the fatasets.
+  if (!empty($datasets)) {
+    $resources = dkan_harvest_get_resources_from_datasets($datasets);
+  }
+
+  // Return an array with all the content that is related with the source.
+  return array_merge($datasets, $resources);
+}
+
+/**
+ * Performs the specified operation on the specified content as part of a batch process.
+ */
+function dkan_harvest_process_content($content_id, $operation, &$context) {
+
+  $content = entity_load_single('node', $content_id);
+  $content_wrapper = entity_metadata_wrapper('node', $content);
+
+  if ($operation == DELETE_CONTENT) {
+    $content_wrapper->delete();
+  } else {
+    // Set as orphan
+    $content_wrapper->field_orphan->set(1);
+    if ($operation == UNPUBLISH_CONTENT) {
+      // Unpublish
+      $content_wrapper->status->set(NODE_NOT_PUBLISHED);
+    }
+    // Save
+    $content_wrapper->save();
+  }
+}
+
+/**
+ * Returns an array with the ID of the datasets associated with a Harvest Source.
+ *
+ * @param $source_id The ID of the Harvest Source.
+ */
+function dkan_harvest_get_datasets_from_source($source_id) {
+  $datasets = array();
+
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'dataset')
+    ->fieldCondition('field_harvest_source_ref', 'target_id', $source_id, '=');
+  $result = $query->execute();
+
+  if (isset($result['node'])) {
+    $datasets = array_keys($result['node']);
+  }
+
+  return $datasets;
+}
+
+/**
+ * Returns an array with the ID of the resources associated with the datasets.
+ *
+ * @param array $datasets An array with the IDs of the datasets.
+ */
+function dkan_harvest_get_resources_from_datasets($datasets) {
+  $resources = array();
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'resource')
+    ->fieldCondition('field_dataset_ref', 'target_id', $datasets, 'IN');
+  $result = $query->execute();
+
+  if (isset($result['node'])) {
+    $resources = array_keys($result['node']);
+  }
+
+  return $resources;
 }
