@@ -747,7 +747,17 @@ function dkan_harvest_node_view($node, $view_mode, $langcode) {
  * Implements hook_form_alter().
  */
 function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
+
+  // Dataset form.
+  if ($form_id == 'dataset_node_form') {
+    // Hide 'harvest surce' field on dataset form.
+    $form['field_harvest_source_ref']['#access'] = FALSE;
+  }
+
+  // Dataset and resource forms.
   if ($form_id == 'dataset_node_form' || $form_id == 'resource_node_form') {
+    // Hide 'orphan' field.
+    $form['field_orphan']['#access'] = FALSE;
     //Show a warning message if is a harvested content.
     $node = $form['#node'];
 
@@ -760,6 +770,8 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
       drupal_set_message($message, 'warning');
     }
   }
+
+  // Harvest Source form.
   if ($form_id == 'harvest_source_node_form') {
     $language = $form['language']['#value'];
 
