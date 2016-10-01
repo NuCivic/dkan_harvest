@@ -798,6 +798,11 @@ function dkan_harvest_form_alter(&$form, &$form_state, $form_id) {
     //Add redirect to tab preview after save.
     $form['actions']['submit']['#submit'][] = 'dkan_harvest_node_save_redirect_submit';
   }
+
+  // Harvest Source delete confirmation.
+  if ($form_id == 'node_delete_confirm' && $form['#node']->type == 'harvest_source') {
+    dkan_harvest_modify_delete_harvest_source_confirmation_form($form, array($form['#node']->nid));
+  }
 }
 
 /**
@@ -928,3 +933,75 @@ function dkan_harvest_get_resources_from_datasets($datasets) {
 
   return $resources;
 }
+
+/**
+ * Modifies the confirmation form that is shown when sources are deleted.
+ *
+ * @param $form The form that is going to be modified.
+ * @param $sources An array with the IDs of the sources that are going to be deleted.
+ */
+function dkan_harvest_modify_delete_harvest_source_confirmation_form(&$form, $sources) {
+
+  // Add list of available operations.
+  $options = array(
+    DELETE_CONTENT => t('Delete content.'),
+    UNPUBLISH_CONTENT => t('Unpublish content.'),
+    ORPHAN_CONTENT => t('Leave content published but mark as orphan.')
+  );
+  $form['dataset_op'] = array(
+    '#type' => 'radios',
+    '#options' => $options,
+    '#default_value' => $options[DELETE_CONTENT],
+  );
+
+  // Modify description.
+  $form['description']['#markup'] = dkan_harvest_build_delete_confirmation_description($sources);
+
+  // Modify submit button.
+  $form['actions']['submit']['#value'] = t('Delete Sources');
+
+  // Set up custom submit handler. Be sure that is the firs handler that is going to be executed.
+  if (isset($form['actions']['submit']['#submit'])) {
+    array_unshift($form['actions']['submit']['#submit'], 'dkan_harvest_delete_confirmation_submit');
+  } else {
+    array_unshift($form['#submit'], 'dkan_harvest_delete_confirmation_submit');
+  }
+
+  // Save sources for easy access on submit handler.
+  $form['sources']['#type'] = 'hidden';
+  $form['sources']['#value'] = $sources;
+}
+
+/**
+ * Builds the description displayed on the confirmation form that is shown when
+ * sources are deleted.
+ *
+ * @param $sources An array with the IDs of the sources that are going to be deleted.
+ */
+function dkan_harvest_build_delete_confirmation_description($sources) {
+
+  $markup = '<p>' . t('The following sources were selected to be deleted:') . '</p>';
+  $markup .= '<ul>';
+  foreach ($sources as $source_id) {
+    $source = entity_load_single('node', $source_id);
+    $source_datasets = dkan_harvest_get_datasets_from_source($source_id);
+    $markup .= '<li>' . $source->title . ': ' . count($source_datasets) . t(' Datasets') . '</li>';
+  }
+  $markup .= '</ul>';
+  $markup .= '<p></br>' . t('Plese select the operation you want to perform on the
+    associated content (datasets and resources):') . '</p>';
+
+  return $markup;
+}
+
+/**
+ * Custom submit handler for VBO delete operation on Harvest Sources.
+ */
+function dkan_harvest_delete_confirmation_submit($form, $form_state) {
+
+  $selected_sources = $form_state['values']['sources'];
+  $datasets_op = $form_state['values']['dataset_op'];
+
+  dkan_harvest_process_source_datasets($selected_sources, $datasets_op);
+}
+
