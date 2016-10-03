@@ -326,7 +326,9 @@ class HarvestMigrateSQLMap extends MigrateSQLMap {
       // miserably in concurrent migrations (iprobably not supported by
       // migration).
       $migration = Migration::currentMigration();
-      $fields['mlid'] = $migration->getLogID();
+      if ($migration) {
+        $fields['mlid'] = $migration->getLogID();
+      }
     }
     else {
       $fields['mlid'] = $mlid;
