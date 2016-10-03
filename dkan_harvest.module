@@ -843,9 +843,18 @@ function dkan_harvest_process_source_datasets($sources, $dataset_op) {
       'title' => t('Deleting selected Harvest Sources and updating associated content...'),
       'progress_message' => t('Processed @current out of @total.'),
       'error_message' => t('An error ocurred while processing the content.'),
+      'finished' => 'dkan_harvest_process_source_datasets_finished',
     );
     batch_set($batch);
   }
+}
+
+/**
+ * Callback function to be executed when the batch process used to process source
+ * datasets is finished.
+ */
+function dkan_harvest_process_source_datasets_finished($success, $results, $operations) {
+  drupal_goto('admin/dkan/harvest/dashboard');
 }
 
 /**
