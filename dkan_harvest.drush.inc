@@ -9,75 +9,228 @@
  * Implements hook_drush_command().
  */
 function dkan_harvest_drush_command() {
-  // Cache the remote ckan endpoint.
-  $items['dkan-cache-harvested-data'] = array(
-    'aliases' => array('dkan-chd'),
-    'description' => 'Caches remote data.json endpoints locally',
-    'callback' => 'dkan_harvest_drush_chd',
-    'options' => array(
-      'sources' => 'A list of comma delimited source keys as provided in hook_harvest_sources.',
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest'] = array(
+    'aliases' => array('dkan-h', 'dkan-harvest-run', 'dkan-hr'),
+    'description' => 'Run a harvest (cache and migration) on a single source or all the available sources if no argument is provided.',
+    'callback' => 'dkan_harvest_drush_command_harvest',
+    'arguments' => array(
+      'source_machine_name' =>
+      'The source machine name to run the harvest caching on',
     ),
+    'options' => array(
+      'skip-hash' => 'Skip hash checking and update all the datasets available in the source.',
+    ),
+    'drupal dependencies' => array('dkan_harvest'),
   );
-  // Runs the migration.
-  $items['dkan-migrate-cached-data'] = array(
-    'aliases' => array('dkan-mcd'),
-    'description' => 'Migrates cached data.json endpoints',
-    'callback' => 'dkan_harvest_migrate_data',
+
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest-cache'] = array(
+    'aliases' => array('dkan-hc', 'dkan-cache-harvested-data', 'dkan-chd'),
+    'description' => 'Run a harvest cache on a single source or all the available sources if the argument is not provided.',
+    'callback' => 'dkan_harvest_drush_command_cache',
+    'arguments' => array(
+      'source_machine_name' =>
+      'The source machine name to run the harvest caching on',
+    ),
+    'drupal dependencies' => array('dkan_harvest'),
   );
-  // Cache + Migration run.
-  $items['dkan-harvest-run'] = array(
+
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest-migrate'] = array(
+    'aliases' => array('dkan-hm', 'dkan-migrate-cached-data', 'dkan-mcd'),
+    'description' => 'Run a harvest migrate on a single source or all the available sources if the argument is not provided.',
+    'callback' => 'dkan_harvest_drush_command_migrate',
+    'arguments' => array(
+      'source_machine_name' => 'The source machine name to run the harvest migration on. If not provided run the harvest ',
+    ),
+    'options' => array(
+      'skip-hash' => 'Skip hash checking and update all the datasets available in the source.',
+    ),
+    'drupal dependencies' => array('dkan_harvest'),
+  );
+
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest-rollback'] = array(
     'aliases' => array('dkan-hr'),
-    'description' => 'Caches data and runs the migration for data.json endpoints',
-    'callback' => 'dkan_harvest_run',
+    'description' => 'Run a harvest rollback on a single source.',
+    'callback' => 'dkan_harvest_drush_command_rollback',
+    'arguments' => array(
+      'source_machine_name' => 'The source machine name to run the harvest migration on. If not provided run the harvest ',
+    ),
+    'drupal dependencies' => array('dkan_harvest'),
   );
-  $items['orphaned-resources-count'] = array(
-    'description' => "Count resources that are not linked to datasets.",
-    'drupal dependencies' => array('dkan_dataset'),
-    'aliases' => array('dkan-or-count', 'orphaned-resources'),
+
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest-status'] = array(
+    'aliases' => array('dkan-hs'),
+    'description' => 'Status Harvest Sources available',
+    'callback' => 'dkan_harvest_drush_command_status',
+    'drupal dependencies' => array('dkan_harvest'),
   );
-  $items['orphaned-resources-delete'] = array(
-    'description' => "Count resources that are not linked to datasets.",
-    'drupal dependencies' => array('dkan_dataset'),
-    'aliases' => array('dkan-or-delete', 'orphaned-resources-delete'),
+
+  // Run harvest cache operation on the source passed as argument.
+  $items['dkan-harvest-deregister'] = array(
+    'aliases' => array('dkan-hdr'),
+    'description' => 'Run a harvest rollback on a single source.',
+    'callback' => 'dkan_harvest_drush_command_deregister',
+    'arguments' => array(
+      'source_machine_name' => 'The source machine name to run the harvest migration on. If not provided run the harvest ',
+    ),
+    'options' => array(
+    ),
+    'drupal dependencies' => array('dkan_harvest'),
   );
+
   return $items;
 }
 
 /**
- * Get a count of orphaned resources.
+ * Run a harvest operation (cache + migrate) on all the harvest source
+ * available or the source passed as arguments.
+ *
+ * @param $source_machine_name Optional harvest source machine name.
  */
-function drush_dkan_harvest_orphaned_resources_count() {
-  $result = db_query("SELECT count(node.nid) AS nid FROM
-  {node} node
-  LEFT JOIN {field_data_field_dataset_ref} field_data_field_dataset_ref ON node.nid = field_data_field_dataset_ref.entity_id AND (field_data_field_dataset_ref.entity_type = 'node' AND field_data_field_dataset_ref.deleted = '0')
-  WHERE (( (node.status = '1') AND (node.type IN  ('resource')) AND (field_data_field_dataset_ref.field_dataset_ref_target_id IS NULL ) ))
-  ")->fetchAll();
-  drush_print(dt('There are !count orphaned resources', array('!count' => $result[0]->nid)));
-  return TRUE;
+function dkan_harvest_drush_command_harvest($source_machine_name) {
+  dkan_harvest_drush_command_cache($source_machine_name);
+  dkan_harvest_drush_command_migrate($source_machine_name);
 }
 
 /**
- * Delete orphaned resources.
+ * Run harvest cache operation on the source passed as argument.
+ *
+ * @param $source_machine_name Source machine name to cache
  */
-function drush_dkan_harvest_orphaned_resources_delete() {
-  $results = db_query("SELECT node.nid AS nid FROM
-  {node} node
-  LEFT JOIN {field_data_field_dataset_ref} field_data_field_dataset_ref ON node.nid = field_data_field_dataset_ref.entity_id AND (field_data_field_dataset_ref.entity_type = 'node' AND field_data_field_dataset_ref.deleted = '0')
-  WHERE (( (node.status = '1') AND (node.type IN  ('resource')) AND (field_data_field_dataset_ref.field_dataset_ref_target_id IS NULL ) ))
-  ")->fetchAll();
-  foreach ($results as $result) {
-    drush_print(dt('Deleting nid !nid', array('!nid' => $result->nid)));
-    node_delete($result->nid);
+function dkan_harvest_drush_command_cache($source_machine_name) {
+  if (isset($source_machine_name)) {
+    if ($source = new HarvestSource($source_machine_name)) {
+      drush_log("Running the harvest migration on " . $source_machine_name, 'notice');
+      return dkan_harvest_cache_sources(array($source), microtime());
+    } else {
+      drush_log("No source with machine name " . $source_machine_name . " found.", 'error');
+    }
+  } else {
+    drush_log("Running the harvest caching on all the available sources.", 'notice');
+    $sources = dkan_harvest_sources_definition();
+    dkan_harvest_cache_sources($sources);
   }
-  return TRUE;
 }
 
 /**
- * Callback function for dkan-chd command.
+ * Run harvest migrate operation on the source passed as argument.
+ *
+ * @param $source_machine_name Source machine name to migrate
  */
-function dkan_harvest_drush_chd() {
-  $options = array();
-  $options['sources'] = drush_get_option('sources', FALSE);
-  $options['sources'] = $options['sources'] ? explode(',', $options['sources']) : array();
-  return dkan_harvest_cache_data($options);
+function dkan_harvest_drush_command_migrate($source_machine_name) {
+  // Gather harvest migration options.
+  $options = array(
+    // TODO add supported default migrate import options.
+    'dkan_harvest_skip_hash' => drush_get_option('skip-hash', FALSE),
+  );
+
+  if (isset($source_machine_name)) {
+    if ($source = new HarvestSource($source_machine_name)) {
+      drush_log("Running the harvest migration on " . $source_machine_name, 'notice');
+      dkan_harvest_migrate_sources(array($source), $options);
+    }
+    else {
+      drush_log("No source with machine name " . $source_machine_name . " found.", 'error');
+    }
+  }
+  else {
+    drush_log("Running the harvest migration on all the available sources.", 'notice');
+    $sources = dkan_harvest_sources_definition();
+    dkan_harvest_migrate_sources($sources);
+  }
+}
+
+/**
+ * Run harvest migrate operation on the source passed as argument.
+ *
+ * @param $source_machine_name Source machine name to migrate
+ */
+function dkan_harvest_drush_command_rollback($source_machine_name) {
+
+  // Gather harvest migration options.
+  $options = array(
+    // TODO add supported default migrate import options.
+  );
+
+  if (!isset($source_machine_name)) {
+    $message = t("No source to rollback.");
+    drush_log($message, 'error');
+    return FALSE;
+  }
+
+  $source = new HarvestSource($source_machine_name);
+  if (!$source) {
+    $message = t("No source with machine name %source_machine_name found.",
+      array(
+        '%source_machine_name' => $source_machine_name,
+      ));
+    drush_log($message, 'error');
+    return FALSE;
+  }
+
+  $message = t("Running the harvest migration on %source_machine_name",
+    array(
+      '%source_machine_name' => $source_machine_name,
+    ));
+  drush_log($message, 'notice');
+  dkan_harvest_rollback_sources(array($source), $options);
+}
+
+/**
+ * Relevent Info about the available Harvest Sources.
+ */
+function dkan_harvest_drush_command_status() {
+  $harvest_sources = dkan_harvest_sources_definition();
+
+  $rows = array();
+
+  $rows[] = array(
+    'machine name' => 'Machine Name',
+    'label' => 'Label',
+    'uri' => 'URI',
+    'type' => 'Type',
+  );
+
+  foreach ($harvest_sources as $harvest_source) {
+    $rows[] = array(
+      'machine name' => $harvest_source->machine_name,
+      'label' => $harvest_source->label,
+      'uri' => $harvest_source->uri,
+      'type' => $harvest_source->type->label,
+    );
+  }
+
+  drush_print_table($rows, TRUE);
+}
+
+/**
+ * Drop the harvest migrate information about a harvest source.
+ *
+ * @param $source_machine_name
+ */
+function dkan_harvest_drush_command_deregister($source_machine_name) {
+
+  // Gather harvest migration options.
+  $options = array(
+    // TODO add supported default migrate import options.
+  );
+
+  if (!isset($source_machine_name)) {
+    $message = t("No source to deregister");
+    drush_log($message, 'error');
+    return FALSE;
+  }
+
+  $harvestSource = new HarvestSource($source_machine_name);
+
+  if (!$harvestSource) {
+    drush_log(t("Harvest Source not found!"), 'error');
+    return FALSE;
+  }
+
+  dkan_harvest_deregister_sources(array($harvestSource), $options);
 }

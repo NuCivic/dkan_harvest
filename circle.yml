@@ -1,33 +1,20 @@
-## Customize the test machine
 machine:
-
   timezone:
-    America/New_York # Set the timezone
-
-  # Version of ruby to use
+    America/New_York
   php:
     version: '5.5.11'
-
-  # Override /etc/hosts
-  #hosts:
-    #circlehost: 127.0.0.1
-    #dev.mycompany.com: 127.0.0.1
-
-  # Add some environment variables
   environment:
-    # For xvfb / selenium setup (not sure why)
-    #DISPLAY: ':99.0'
     DATABASE_URL: mysql://ubuntu:@127.0.0.1:3306/circle_test
-## Customize checkout
-## Note: Only post is supported.
+    COMPOSER_PATH: $HOME/.config/composer/vendor/bin
+    PATH: $COMPOSER_PATH:$PATH
 checkout:
   post:
     # Remove the extra composer stuff that circleci loads and that is causing conflicts with drush.
     - rm -rf ~/.composer
 
-## Customize dependencies
 dependencies:
-
+  pre:
+    - echo "memory_limit = 256M" > ~/.phpenv/versions/5.5.11/etc/conf.d/memory.ini
   cache_directories:
      #- "test/vendor"
      #- "~/.composer"
@@ -38,22 +25,13 @@ dependencies:
     - mkdir $CIRCLE_ARTIFACTS/junit
     - 'bash dkan-module-init.sh --deps --build=$DATABASE_URL'
     - cd dkan_harvest && composer install && cd ..
-    - ahoy drush -y en dkan_harvest_test dkan_harvest_example
-  # we automatically cache and restore many dependencies between
-  # builds. If you need to, you can add custom paths to cache:
-  #cache_directories:
-  #  - "custom_1"   # relative to the build directory
-  #  - "~/custom_2" # relative to the user's home directory
-
-## Customize database setup
-database:
-  override:
-    # replace CircleCI's generated database.yml
-    #- cp config/database.yml.ci config/database.yml
-    #- bundle exec rake db:create db:schema:load
-
-## Customize test commands
+    - ahoy drush -y en dkan_harvest_test
+    - 'ahoy drush --yes runserver :8888':
+        background: true
+    - wget http://selenium-release.storage.googleapis.com/2.48/selenium-server-standalone-2.48.2.jar
+    - java -jar selenium-server-standalone-2.48.2.jar -quiet -p 4444 -log shut_up_selenium :
+        background: true
 test:
   override:
-  # Fix for behat bug not recognizing symlinked feature files.
-     - dkan_harvest/bin/phpunit --configuration dkan_harvest/test
+    - dkan_harvest/bin/phpunit --configuration dkan_harvest/test/phpunit
+    - bash dkan/test/circle-behat.sh docroot/profiles/dkan/test/features
