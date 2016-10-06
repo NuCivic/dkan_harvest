@@ -26,9 +26,6 @@ dependencies:
     - 'bash dkan-module-init.sh --deps --build=$DATABASE_URL'
     - cd dkan_harvest && composer install && cd ..
     - ahoy drush -y en dkan_harvest_test
-    # Remove all dkan tests for now
-    - rm -rf dkan/test/features/*.feature
-    - cp dkan_harvest/test/behat/features/*.feature dkan/test/features/
     - 'ahoy drush --yes runserver :8888':
         background: true
     - wget http://selenium-release.storage.googleapis.com/2.48/selenium-server-standalone-2.48.2.jar
