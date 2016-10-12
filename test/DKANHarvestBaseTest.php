@@ -135,4 +135,17 @@ class DKANHarvestBaseTest extends PHPUnit_Framework_TestCase
       $node = $this->getNodeByTitle($title);
       $this->assertEquals($node->title, $title);
     }
+
+    /**
+     * @covers dkan_harvest_cache_data().
+     */
+    public function testDKANHarvestHeadersCallback()
+    {
+      $options = array(
+        'sources' => array('source.with.auth'),
+      );
+      $expected = "4 datasets harvested in total";
+      $actual = dkan_harvest_cache_data($options);
+      $this->assertEquals($expected, $actual);
+    }
 }

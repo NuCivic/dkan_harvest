@@ -39,6 +39,9 @@ dependencies:
     - 'bash dkan-module-init.sh --deps --build=$DATABASE_URL'
     - cd dkan_harvest && composer install && cd ..
     - ahoy drush -y en dkan_harvest_test dkan_harvest_example
+    # Run very simple server to test header decoration callback.
+    - 'ahoy cmd-proxy php -S 127.0.0.1:8080 -t dkan_harvest/test dkan_harvest/test/data_json_server_with_token.php':
+        background: true
   # we automatically cache and restore many dependencies between
   # builds. If you need to, you can add custom paths to cache:
   #cache_directories:
