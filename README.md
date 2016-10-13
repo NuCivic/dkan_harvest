@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/NuCivic/dkan_harvest.svg?branch=7.x-1.x)](https://travis-ci.org/NuCivic/dkan_harvest)
 
-**DEPRECATED:** This module has been moved into [DKAN core](https://github.com/NuCivic/dkan) for release 7.x-1.13. To maintain backward compatibility with DKAN 7.x-1.12 and subsequent patch releases this project will remain on Github but new features will be applied directly to the DKAN core folder `modules/dkan/open_data_schema_map_dkan`.
+**DEPRECATED:** This module has been moved into [DKAN core](https://github.com/NuCivic/dkan) for release 7.x-1.13. To maintain backward compatibility with DKAN 7.x-1.12 and subsequent patch releases this project will remain on Github but new features will be applied directly to the DKAN core folder `modules/dkan/dkan_harvest`.
 
 ## What is DKAN Harvest?
 
