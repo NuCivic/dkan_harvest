@@ -18,6 +18,8 @@ function dkan_harvest_harvest_sources() {
       'defaults' => array('keyword' => array('harvested dataset'),
       // Provide overrides (Optional).
       'overrides' => array('author' => 'Author'),
+      // Provide a callback to attach headers to file_get_content call
+      'attach_headers_callback' => 'dkan_harvest_attach_headers'
     ),
   );
 }

@@ -28,7 +28,15 @@ function dkan_harvest_example_harvest_sources() {
         'catalog_type' => 'State Catalog',
       ),
       'overrides' => array(),
+      'attach_headers_callback' => 'dkan_harvest_example_attach_headers',
     ),
   );
   return $sources;
+}
+
+function dkan_harvest_example_attach_headers() {
+  $headers = array(
+    'Accept' => '*/*',
+  );
+  return $headers;
 }

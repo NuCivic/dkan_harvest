@@ -63,45 +63,56 @@ function dkan_harvest_cache_data($options = array()) {
  * Callback for dkan-cache-harvested-data.
  */
 function dkan_harvest_cache_data_process($sources, $harvest_last_updated) {
-  $context = stream_context_create(
-    array(
-      'http' => array(
-        'timeout' => 36000,
-      ),
-      'https' => array(
-        'timeout' => 36000,
-      ),
-    )
+  $options = array(
+    'timeout' => 36000,
+    'method' => 'GET',
   );
   $counters = array();
   foreach ($sources as $key => $source) {
-    $remote = file_get_contents($source['remote'], 0, $context);
-    $counters[$key] = 0;
-    if ($remote) {
-      switch ($source['type']) {
-        case 'data.xml':
-          $xml = simplexml_load_string($remote);
-          $json  = json_encode($xml);
-          $array = json_decode($json, TRUE);
+    $context = $base_context;
+    if (isset($source['attach_headers_callback'])) {
+      $callback = $source['attach_headers_callback'];
+      $options['headers'] = $callback();
+    }
+    $request = array();
+    if (filter_var($source['remote'], FILTER_VALIDATE_URL)) {
+      $request = drupal_http_request($source['remote'], $options);
+      $remote = $request->data;
+    }
+    else {
+      $remote = file_get_contents($source['remote']);
+    }
+    if (!isset($request->error)) {
+      $counters[$key] = 0;
+      if ($remote) {
+        switch ($source['type']) {
+          case 'data.xml':
+            $xml = simplexml_load_string($remote);
+            $json  = json_encode($xml);
+            $array = json_decode($json, TRUE);
 
-          if ($array) {
-            dkan_harvest_cache_pod_1_1_json($array, $key, $source, $counters);
-          }
-          break;
+            if ($array) {
+              dkan_harvest_cache_pod_1_1_json($array, $key, $source, $counters);
+            }
+            break;
 
-        case 'data.json':
-          $remote = utf8_encode($remote);
-          $json = drupal_json_decode($remote);
-          if (!$json) {
-            # Anticipate encoding errors.
+          case 'data.json':
             $remote = utf8_encode($remote);
             $json = drupal_json_decode($remote);
-          }
-          if ($json) {
-            dkan_harvest_cache_pod_1_1_json($json, $key, $source, $counters);
-          }
-          break;
+            if (!$json) {
+              # Anticipate encoding errors.
+              $remote = utf8_encode($remote);
+              $json = drupal_json_decode($remote);
+            }
+            if ($json) {
+              dkan_harvest_cache_pod_1_1_json($json, $key, $source, $counters);
+            }
+            break;
+        }
       }
+    }
+    else {
+      dkan_harvest_log($request->error, 'error');
     }
   }
   $n = 0;

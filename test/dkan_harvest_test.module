@@ -22,5 +22,20 @@ function dkan_harvest_test_harvest_sources() {
         'identifier' => array('c2150dce-db96-4007-ba3f-fb4f3774902d'),
       ),
     ),
+    'source.with.auth' => array(
+      'remote' => 'http://127.0.0.1:8080',
+      'type' => 'data.json',
+      'overrides' => array(),
+      'filters' => array(),
+      'excludes' => array(),
+      'attach_headers_callback' => 'dkan_harvest_test_attach_token',
+    ),
   );
+}
+
+function dkan_harvest_test_attach_token() {
+  $headers = array(
+    'token' => 'simpletoken',
+  );
+  return $headers;
 }
