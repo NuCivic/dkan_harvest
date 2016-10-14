@@ -28,7 +28,7 @@ function dkan_harvest_migrate_api() {
   return $api;
 }
 
-class DataJSONList extends MigrateList {
+class HarvestList extends MigrateList {
   protected $files;
   /**
    * Builds the list of files paths inside DKAN_HARVEST_CACHE_DIR.
@@ -40,7 +40,8 @@ class DataJSONList extends MigrateList {
       $files = array();
       $sources = dkan_harvest_sources_definition();
       foreach ($sources as $key => $source) {
-        if ($source['type'] == 'data.json') {
+        if ($source['type'] == $this->source_type) {
+          
           $dir = DKAN_HARVEST_CACHE_DIR . '/' . $key;
           $dir = drupal_realpath($dir);
           foreach (glob($dir . '/*') as $filename) {
@@ -58,6 +59,8 @@ class DataJSONList extends MigrateList {
    */
   public function getIdList() {
     $ids = array();
+    $source_types = dkan_harvest_source_types_definition();
+    $identifier = $source_types[$this->source_type]['identifier'];
     $cache = cache_get('dkan_harvest_ids');
     if ($cache && isset($cache->data) && count($cache->data) == count($this->files)) {
       return array_keys($cache->data);
@@ -66,7 +69,7 @@ class DataJSONList extends MigrateList {
       foreach ($this->files as $file) {
         if (file_exists($file)) {
           $data = json_decode(file_get_contents($file));
-          $ids[$data->identifier] = $file;
+          $ids[$data->{$identifier}] = $file;
         }
       }
       cache_set('dkan_harvest_ids', $ids, 'cache');
@@ -86,17 +89,11 @@ class DataJSONList extends MigrateList {
    */
   public function computeCount() {
     $count = count($this->getIdList());
-    foreach ($this->files as $file) {
-      if (file_exists($file)) {
-        $data = json_decode(file_get_contents($file));
-        $count = $count + count($data->distribution);
-      }
-    }
     return $count;
   }
 }
 
-class DataJSONItem extends MigrateItem {
+class HarvestItem extends MigrateItem {
   /**
    * Implements MigrateItem::getItem().
    */
@@ -156,6 +153,24 @@ class DataJSONItem extends MigrateItem {
   }
 }
 
+class DataJSONList extends HarvestList {
+  public function __construct() {
+    $this->source_type = 'data.json';
+    parent::__construct();
+  }
+
+  public function computeCount() {
+    $count = parent::computeCount();
+    foreach ($this->files as $file) {
+      if (file_exists($file)) {
+        $data = json_decode(file_get_contents($file));
+        $count = $count + count($data->distribution);
+      }
+    }
+    return $count;
+  }
+}
+
 class DataJSONHarvest extends MigrateDataJsonDatasetBase {
   /**
    * Registers endpoints.
@@ -165,7 +180,7 @@ class DataJSONHarvest extends MigrateDataJsonDatasetBase {
     $fields = $this->getDataJsonDatasetFields();
     $this->source = new MigrateSourceList(
       new DataJSONList(),
-      new DataJSONItem(), $fields
+      new HarvestItem(), $fields
     );
     $this->map = new MigrateSQLMap(
         $this->machineName,
