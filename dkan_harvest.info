@@ -1,5 +1,5 @@
 name = dkan_harvest
-description = Harvest data from external sources
+description = QA test
 core = 7.x
 
 dependencies[] = 'migrate'
